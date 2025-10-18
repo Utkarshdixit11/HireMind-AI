@@ -21,7 +21,7 @@ const App: React.FC = () => {
   return (
     <div className="bg-slate-50 min-h-screen text-slate-800">
       <div className="container mx-auto p-4 md:p-8">
-        <Header view={view} setView={setView} />6
+        <Header view={view} setView={setView} />
         <main className="mt-8">
           {view === 'seeker' ? (
             <JobSeeker jobs={jobs} addApplicant={addApplicant} applicants={applicants} />
