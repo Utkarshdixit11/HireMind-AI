@@ -1,5 +1,5 @@
 {
-  "name": "panscience",
+  "name": "hiremind-ai",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,9 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react-dom": "^19.2.0",
     "@google/genai": "^1.25.0",
-    "react": "^19.2.0"
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.17.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
