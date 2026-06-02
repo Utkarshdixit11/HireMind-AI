@@ -57,6 +57,7 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
   const [jobDesc, setJobDesc] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [selectedApplicant, setSelectedApplicant] = useState<any | null>(null);
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState('');
@@ -114,6 +115,9 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
           body: JSON.stringify({ title: jobTitle, description: jobDesc, extractedInfo: info }),
         });
         const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || 'Failed to create job on server.');
+        }
         if (data.job) {
           finalJob = {
             id: data.job._id || data.job.id,
@@ -275,31 +279,38 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
         </div>
 
         {/* List of active postings */}
-        <div className="hm-card glass-card">
-          <div className="hm-card-title">
-            <div className="hm-card-icon"><BriefIco /></div>
-            Active Postings
-            <span className="hm-count">{jobs.length}</span>
-          </div>
-          {jobs.length === 0 ? (
-            <div className="hm-empty">
-              <div className="hm-empty-icon"><BriefIco /></div>
-              <p>You have not published any job listings yet.</p>
-            </div>
-          ) : (
-            <div style={{display:'flex',flexDirection:'column',gap:8}}>
-              {jobs.map(j => (
+        {(() => {
+          const openJobs = jobs.filter(j => 
+            !applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
+          );
+          return (
+            <div className="hm-card glass-card">
+              <div className="hm-card-title">
+                <div className="hm-card-icon"><BriefIco /></div>
+                Active Postings
+                <span className="hm-count">{openJobs.length}</span>
+              </div>
+              {openJobs.length === 0 ? (
+                <div className="hm-empty">
+                  <div className="hm-empty-icon"><BriefIco /></div>
+                  <p>You have not published any open job listings yet.</p>
+                </div>
+              ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {openJobs.map(j => (
                 <div 
                   key={j.id} 
                   className="hm-match-card"
                   style={{
+                    display: 'flex',
+                    flexDirection: 'column',
                     border: '1px solid rgba(255,255,255,0.05)',
                     background: 'rgba(255,255,255,0.02)',
                     padding: '16px',
                     borderRadius: '12px'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                     <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.94rem' }}>{j.title}</div>
                     {onDeleteJob && (
                       <button
@@ -328,7 +339,7 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
                       </button>
                     )}
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginTop: '8px', lineHeight: '1.5', maxHeight: '80px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '8px', lineHeight: '1.5', whiteSpace: 'pre-wrap', width: '100%' }}>
                     {j.description}
                   </p>
                 </div>
@@ -336,6 +347,8 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
             </div>
           )}
         </div>
+      );
+    })()}
 
       </div>
     );
@@ -344,7 +357,7 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
   // ── PAGE 2: CANDIDATE TRACKER ──
   if (view === 'tracker') {
     return (
-      <div className="hm-grid-provider-tracker">
+      <div className={`hm-grid-provider-tracker${mobileShowDetail ? ' show-detail' : ''}`}>
         
         {/* Left Side: Selected Job selector + Applicants list */}
         <div className="flex-col-gap-4">
@@ -454,7 +467,10 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
                     {sortedJobApps.map((app, index) => (
                       <button
                         key={app.id}
-                        onClick={() => setSelectedApplicant(app)}
+                        onClick={() => {
+                          setSelectedApplicant(app);
+                          setMobileShowDetail(true);
+                        }}
                         className={`hm-match-card${selectedApplicant?.id === app.id ? ' active' : ''}`}
                         style={{ 
                           width: '100%', 
@@ -495,6 +511,12 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
 
         {/* Right Side: Detailed candidate review */}
         <div className="hm-card glass-card" style={{ minHeight: '400px' }}>
+          <button 
+            className="jobboard-back-btn" 
+            onClick={() => setMobileShowDetail(false)}
+          >
+            ← Back to Applicants
+          </button>
           <div className="hm-card-title">
             <div className="hm-card-icon"><UsersIco /></div>
             Candidate Review & AI Summary
@@ -523,7 +545,7 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
               {/* AI Resume Summary */}
               <div className="hm-bio" style={{ marginTop: 0 }}>
                 <div className="hm-bio-label">✦ Resume AI Summary</div>
-                <p className="hm-bio-text" style={{ fontSize: '0.84rem', lineHeight: '1.6', color: 'rgba(255, 255, 255, 0.8)' }}>
+                <p className="hm-bio-text" style={{ fontSize: '0.84rem', lineHeight: '1.6', color: 'rgba(255, 255, 255, 0.8)', whiteSpace: 'pre-wrap' }}>
                   {selectedApplicant.extractedInfo.experienceSummary}
                 </p>
               </div>
@@ -532,7 +554,7 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
               {selectedApplicant.extractedInfo.education && (
                 <div className="hm-stat">
                   <div className="hm-stat-label">Education</div>
-                  <div className="hm-stat-value" style={{ fontSize: '0.82rem', color: '#fff' }}>
+                  <div className="hm-stat-value" style={{ fontSize: '0.82rem', color: '#fff', whiteSpace: 'pre-wrap' }}>
                     {selectedApplicant.extractedInfo.education}
                   </div>
                 </div>

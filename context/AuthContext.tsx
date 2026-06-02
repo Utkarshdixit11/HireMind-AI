@@ -11,7 +11,7 @@ interface AuthContextValue {
   login: (creds: LoginCredentials) => Promise<void>;
   signup: (creds: SignupCredentials) => Promise<void>;
   logout: () => void;
-  loginWithGoogle: () => void;
+  loginWithGoogle: (role?: string) => void;
   updateUser: (user: User) => void;
   loginAsGuest: () => void;
 }
@@ -134,8 +134,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   }, []);
 
-  const loginWithGoogle = useCallback(() => {
-    window.location.href = `${API_BASE}/auth/google`;
+  const loginWithGoogle = useCallback((role?: string) => {
+    const roleParam = role || 'seeker';
+    window.location.href = `${API_BASE}/auth/google?role=${roleParam}`;
   }, []);
 
   const updateUser = useCallback((updatedUser: User) => {

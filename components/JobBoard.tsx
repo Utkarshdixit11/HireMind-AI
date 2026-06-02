@@ -32,7 +32,11 @@ const BriefIco = () => (
   </svg>
 );
 
-export const JobBoard: React.FC = () => {
+interface JobBoardProps {
+  applications?: any[];
+}
+
+export const JobBoard: React.FC<JobBoardProps> = ({ applications }) => {
   const { token, isAuthenticated, user } = useAuth();
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,10 +44,22 @@ export const JobBoard: React.FC = () => {
   const [search, setSearch] = useState('');
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState<string | null>(null);
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
   useEffect(() => {
     fetchJobs();
   }, []);
+
+  useEffect(() => {
+    if (applications) {
+      const userAppliedIds = applications.map(app => app.jobId);
+      setApplied(new Set(userAppliedIds));
+    }
+  }, [applications]);
+
+  const isJobShortlisted = (jobId: string) => {
+    return (applications || []).some(app => app.jobId === jobId && app.status === 'Shortlisted');
+  };
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -70,11 +86,21 @@ export const JobBoard: React.FC = () => {
     setApplying(null);
   };
 
-  const filtered = jobs.filter(j =>
-    j.title.toLowerCase().includes(search.toLowerCase()) ||
-    j.companyName?.toLowerCase().includes(search.toLowerCase()) ||
-    j.extractedInfo?.requiredSkills?.some(s => s.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = jobs.filter(j => {
+    const isShortlisted = isJobShortlisted(j._id);
+    const hasApplied = (applications || []).some(app => app.jobId === j._id);
+    
+    // Hide closed/shortlisted jobs unless this seeker applied to them
+    if (isShortlisted && !hasApplied) {
+      return false;
+    }
+
+    return (
+      j.title.toLowerCase().includes(search.toLowerCase()) ||
+      j.companyName?.toLowerCase().includes(search.toLowerCase()) ||
+      j.extractedInfo?.requiredSkills?.some(s => s.toLowerCase().includes(search.toLowerCase()))
+    );
+  });
 
   return (
     <div className="jobboard-wrap">
@@ -110,14 +136,17 @@ export const JobBoard: React.FC = () => {
           <p>{jobs.length === 0 ? 'No jobs posted yet. Employers — post your first vacancy above!' : 'No jobs match your search.'}</p>
         </div>
       ) : (
-        <div className="jobboard-grid">
+        <div className={`jobboard-grid${mobileShowDetail ? ' show-detail' : ''}`}>
           {/* ── Left: Job List ── */}
           <div className="jobboard-list">
             {filtered.map(job => (
               <button
                 key={job._id}
                 className={`jobboard-item${selectedJob?._id === job._id ? ' selected' : ''}`}
-                onClick={() => setSelectedJob(job)}
+                onClick={() => {
+                  setSelectedJob(job);
+                  setMobileShowDetail(true);
+                }}
               >
                 <div className="jobboard-item-header">
                   <div className="jobboard-company-avatar">
@@ -132,7 +161,11 @@ export const JobBoard: React.FC = () => {
                     <div className="jobboard-item-company">{job.companyName || job.postedBy?.name}</div>
                   </div>
                   {applied.has(job._id) && (
-                    <span className="jobboard-applied-badge">Applied ✓</span>
+                    isJobShortlisted(job._id) ? (
+                      <span className="jobboard-applied-badge" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}>Job Expired</span>
+                    ) : (
+                      <span className="jobboard-applied-badge">Applied ✓</span>
+                    )
                   )}
                 </div>
                 <div className="jobboard-item-skills">
@@ -141,8 +174,17 @@ export const JobBoard: React.FC = () => {
                   ))}
                 </div>
                 <div className="jobboard-item-meta">
-                  <span className="jobboard-status-dot" />
-                  Active · {timeAgo(job.createdAt)}
+                  {isJobShortlisted(job._id) ? (
+                    <>
+                      <span className="jobboard-status-dot" style={{ background: '#ef4444' }} />
+                      <span style={{ color: '#f87171', fontWeight: 600 }}>Job Expired</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="jobboard-status-dot" />
+                      Active · {timeAgo(job.createdAt)}
+                    </>
+                  )}
                 </div>
               </button>
             ))}
@@ -151,6 +193,12 @@ export const JobBoard: React.FC = () => {
           {/* ── Right: Job Detail ── */}
           {selectedJob && (
             <div className="jobboard-detail glass-card animate-fade-rise">
+              <button 
+                className="jobboard-back-btn" 
+                onClick={() => setMobileShowDetail(false)}
+              >
+                ← Back to Jobs
+              </button>
               <div className="jobboard-detail-header">
                 <div className="jobboard-detail-company-avatar">
                   {selectedJob.postedBy?.avatar ? (
@@ -205,6 +253,14 @@ export const JobBoard: React.FC = () => {
                       <line x1="12" y1="16" x2="12.01" y2="16"/>
                     </svg>
                     {user?.role === 'guest' ? 'Please register or sign in as a Candidate to apply' : 'Sign in to apply for this position'}
+                  </div>
+                ) : isJobShortlisted(selectedJob._id) ? (
+                  <div className="jobboard-applied-confirm" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#f87171' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    Job Expired
                   </div>
                 ) : applied.has(selectedJob._id) ? (
                   <div className="jobboard-applied-confirm">

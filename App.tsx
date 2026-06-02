@@ -146,13 +146,33 @@ const AppInner: React.FC = () => {
         if (view !== 'guest-scorer' && view !== 'about') {
           setView('guest-scorer');
         }
-      } else if (user.role === 'seeker' && (view === 'post' || view === 'tracker' || view === 'guest-scorer')) {
-        setView('board');
-      } else if (user.role === 'provider' && (view === 'resume' || view === 'matches' || view === 'prep' || view === 'guest-scorer')) {
-        setView('board');
+      } else if (user.role === 'seeker') {
+        if (view === 'post' || view === 'tracker' || view === 'guest-scorer') {
+          setView('board');
+        }
+      } else if (user.role === 'provider') {
+        if (view === 'resume' || view === 'matches' || view === 'prep' || view === 'guest-scorer') {
+          setView('board');
+        }
+      }
+    } else {
+      // If not authenticated, restrict views to landing, about, or guest-scorer
+      if (view !== 'landing' && view !== 'about' && view !== 'guest-scorer') {
+        setView('landing');
       }
     }
   }, [view, isAuthenticated, user]);
+
+  // On login, redirect from landing to board
+  React.useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === 'guest') {
+        setView('guest-scorer');
+      } else if (view === 'landing') {
+        setView('board');
+      }
+    }
+  }, [isAuthenticated]);
 
   return (
     <>
@@ -166,7 +186,7 @@ const AppInner: React.FC = () => {
         <Header view={view} setView={(v: any) => setView(v)} onOpenAuth={handleOpenAuth} />
 
         {/* Dashboard greeting banner (rendered in flow under sticky header) */}
-        {isAuthenticated && user && !isLoading && (
+        {isAuthenticated && user && !isLoading && view !== 'landing' && (
           <div className="nav2-dashboard-hero" style={{ marginTop: '24px', marginBottom: '8px' }}>
             <div className="nav2-hero-inner">
               <div>
@@ -208,15 +228,15 @@ const AppInner: React.FC = () => {
                   <div className="hm-dot" />
                 </div>
               </div>
-            ) : !isAuthenticated ? (
-              /* ── GUEST: Landing page ── */
-              <LandingPage onOpenAuth={handleOpenAuth} />
+            ) : (!isAuthenticated || view === 'landing') ? (
+              /* ── Landing page ── */
+              <LandingPage onOpenAuth={handleOpenAuth} onGoToDashboard={() => setView('board')} />
             ) : (
               /* ── AUTHENTICATED: Dashboard ── */
               <div className="hm-dashboard-wrap">
                 {view === 'board' && (
                   <div className="hm-content">
-                    <JobBoard />
+                    <JobBoard applications={applications} />
                   </div>
                 )}
                 {user?.role === 'seeker' && (view === 'resume' || view === 'matches' || view === 'prep') && (

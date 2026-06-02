@@ -289,7 +289,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialMode = 'lo
                   </div>
                 )}
 
-                <button className="auth-google-btn" onClick={loginWithGoogle} type="button" id="btn-google-signin" style={{ width: '100%', marginBottom: '12px' }}>
+                <button className="auth-google-btn" onClick={() => loginWithGoogle(mode === 'signup' ? role : 'seeker')} type="button" id="btn-google-signin" style={{ width: '100%', marginBottom: '12px' }}>
                   <GoogleIcon /><span>Continue with Google</span>
                 </button>
 

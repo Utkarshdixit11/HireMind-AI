@@ -8,8 +8,9 @@ passport.use(
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: process.env.GOOGLE_CALLBACK_URL,
+      passReqToCallback: true,
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (req, accessToken, refreshToken, profile, done) => {
       try {
         const email = profile.emails?.[0]?.value;
         if (!email) return done(new Error('No email from Google'), null);
@@ -31,6 +32,21 @@ passport.use(
           return done(null, user);
         }
 
+        // Determine role from state
+        let role = 'seeker';
+        if (req.query && req.query.state) {
+          try {
+            const stateObj = JSON.parse(req.query.state);
+            if (stateObj && stateObj.role) {
+              role = stateObj.role;
+            }
+          } catch (e) {
+            if (req.query.state === 'provider' || req.query.state === 'seeker') {
+              role = req.query.state;
+            }
+          }
+        }
+
         // Create new user from Google profile
         user = await User.create({
           name: profile.displayName || email.split('@')[0],
@@ -39,7 +55,7 @@ passport.use(
           avatar: profile.photos?.[0]?.value || null,
           provider: 'google',
           isVerified: true,
-          role: 'seeker',
+          role,
         });
 
         return done(null, user);

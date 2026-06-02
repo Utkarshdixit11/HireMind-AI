@@ -6,7 +6,9 @@ import {
   analyzeFit, 
   generateBio, 
   analyzeDetailedFit, 
-  DetailedAnalysis 
+  DetailedAnalysis,
+  chatPrepCoach,
+  ChatMessage
 } from '../services/geminiService';
 import { UploadIcon } from './icons/UploadIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
@@ -31,6 +33,78 @@ const Spin = ({ label }: { label?: string }) => (
   <div className="hm-spinner"><Dot />{label && <span style={{marginLeft:8,fontSize:'0.82rem',color:'rgba(255,255,255,0.3)'}}>{label}</span>}</div>
 );
 
+const ChatMessageBubble: React.FC<{ msg: ChatMessage; isLatest: boolean }> = ({ msg, isLatest }) => {
+  const isModel = msg.role === 'model';
+  const [displayedText, setDisplayedText] = useState(isModel && isLatest ? '' : msg.text);
+  const [isTyping, setIsTyping] = useState(isModel && isLatest);
+
+  useEffect(() => {
+    if (isModel && isLatest && displayedText === '') {
+      let index = 0;
+      let current = '';
+      const timer = setInterval(() => {
+        if (index < msg.text.length) {
+          current += msg.text.charAt(index);
+          setDisplayedText(current);
+          index++;
+        } else {
+          setIsTyping(false);
+          clearInterval(timer);
+        }
+      }, 3);
+      return () => clearInterval(timer);
+    } else {
+      setDisplayedText(msg.text);
+      setIsTyping(false);
+    }
+  }, [msg.text, isLatest, isModel]);
+
+  const renderFormattedText = (text: string) => {
+    const parts = text.split(/\*\*([^*]+)\*\*/g);
+    return parts.map((part, idx) => {
+      if (idx % 2 === 1) {
+        return <strong key={idx} style={{ color: '#fff', fontWeight: 600 }}>{part}</strong>;
+      }
+      return part;
+    });
+  };
+
+  return (
+    <div
+      style={{
+        alignSelf: isModel ? 'flex-start' : 'flex-end',
+        maxWidth: '85%',
+        background: isModel ? 'rgba(255,255,255,0.03)' : 'rgba(96,165,250,0.12)',
+        border: isModel ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(96,165,250,0.25)',
+        borderRadius: isModel ? '16px 16px 16px 4px' : '16px 16px 4px 16px',
+        padding: '12px 14px',
+        transition: 'all 0.25s ease'
+      }}
+    >
+      {isModel && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem', color: '#34d399', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+          <SparklesIcon />
+          Prep Coach
+        </div>
+      )}
+      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.9)', margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+        {renderFormattedText(displayedText)}
+        {isTyping && (
+          <span 
+            style={{ 
+              marginLeft: '2px', 
+              color: '#34d399', 
+              fontWeight: 'bold',
+            }}
+          >
+            |
+          </span>
+        )}
+      </p>
+    </div>
+  );
+};
+
 export const JobSeeker: React.FC<Props> = ({ jobs, addApplicant, applicants, applications, onApply, view }) => {
   // Load resume dynamically from localStorage so seeker does not need to re-upload on tab change / refresh
   const [applicant, setApplicant] = useState<Applicant | null>(() => {
@@ -52,6 +126,73 @@ export const JobSeeker: React.FC<Props> = ({ jobs, addApplicant, applicants, app
   const [detailedAnalysis, setDetailedAnalysis] = useState<DetailedAnalysis | null>(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [errorAnalysis, setErrorAnalysis] = useState<string | null>(null);
+
+  // Chat prep coach state
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto scroll chat to bottom
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, chatLoading]);
+
+  // Initial welcome message setup
+  const startPrepChat = () => {
+    if (!selectedJob || !detailedAnalysis || !applicant) return;
+    
+    const initialMsg: ChatMessage = {
+      role: 'model',
+      text: `Hello! I am your HireMind AI Prep Coach. 
+
+I've analyzed your resume and the **${selectedJob.title}** job description. Here are your key prep notes:
+
+📌 **Key Focus Areas:**
+${detailedAnalysis.prepGuide.map(step => `• ${step}`).join('\n')}
+
+💡 **Strong Matches on Resume:**
+${applicant.extractedInfo.skills.slice(0, 5).join(', ')}
+
+⚠️ **Identified Skill Gaps:**
+${detailedAnalysis.missingThings.length > 0 ? detailedAnalysis.missingThings.map(gap => `• ${gap}`).join('\n') : '• None! You meet the skill requirements.'}
+
+How would you like to prepare today? You can ask me to test you with mock questions, explain concepts, or review your answers!`
+    };
+    
+    setChatMessages([initialMsg]);
+    setShowChat(true);
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || chatLoading || !applicant || !selectedJob) return;
+
+    const userMsg = chatInput.trim();
+    const updatedHistory = [...chatMessages, { role: 'user' as const, text: userMsg }];
+    setChatMessages(updatedHistory);
+    setChatInput('');
+    setChatLoading(true);
+
+    try {
+      const response = await chatPrepCoach(
+        applicant.extractedInfo,
+        selectedJob.title,
+        selectedJob.description,
+        chatMessages,
+        userMsg
+      );
+      setChatMessages([...updatedHistory, { role: 'model' as const, text: response }]);
+    } catch (err) {
+      setChatMessages([...updatedHistory, { role: 'model' as const, text: "Sorry, I had trouble generating a response. Please try again." }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -117,6 +258,8 @@ export const JobSeeker: React.FC<Props> = ({ jobs, addApplicant, applicants, app
   useEffect(() => {
     if (selectedJob && applicant) {
       loadDetailedAnalysis(selectedJob);
+      setShowChat(false);
+      setChatMessages([]);
     }
   }, [selectedJob]);
 
@@ -191,7 +334,7 @@ export const JobSeeker: React.FC<Props> = ({ jobs, addApplicant, applicants, app
                 ].map(([l, v]) => (
                   <div key={l} className="hm-stat">
                     <div className="hm-stat-label">{l}</div>
-                    <div className="hm-stat-value" style={{ fontSize: '0.86rem', lineHeight: '1.5', color: 'rgba(255,255,255,0.85)' }}>{v}</div>
+                    <div className="hm-stat-value" style={{ fontSize: '0.86rem', lineHeight: '1.5', color: 'rgba(255,255,255,0.85)', whiteSpace: 'pre-wrap' }}>{v}</div>
                   </div>
                 ))}
                 <div>
@@ -382,65 +525,156 @@ export const JobSeeker: React.FC<Props> = ({ jobs, addApplicant, applicants, app
           ) : errorAnalysis ? (
             <div className="hm-error">{errorAnalysis}</div>
           ) : detailedAnalysis ? (
-            <div className="flex-col-gap-4">
-              
-              <div>
-                <h3 style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 600 }}>{selectedJob.title}</h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
-                  <span className={`hm-score ${scoreClass(detailedAnalysis.score)}`}>
-                    {detailedAnalysis.score}% Match Score
-                  </span>
+            showChat ? (
+              <div style={{ display: 'flex', flexDirection: 'column', minHeight: '450px' }}>
+                {/* Chat Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1rem', color: '#fff', fontWeight: 600, margin: 0 }}>💬 Interview Prep Coach</h3>
+                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', margin: '2px 0 0 0' }}>Role: {selectedJob.title}</p>
+                  </div>
+                  <button
+                    className="hm-btn hm-btn-ghost"
+                    style={{ padding: '6px 12px', fontSize: '0.78rem', minHeight: 'unset', border: '1px solid rgba(255,255,255,0.1)' }}
+                    onClick={() => setShowChat(false)}
+                  >
+                    ← Back to Guide
+                  </button>
                 </div>
-              </div>
 
-              {/* Section 1: Missing Things */}
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fbbf24', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
-                  <ExclamationIco />
-                  Missing Skills & Requirements
+                {/* Messages List */}
+                <div 
+                  className="hide-scrollbar" 
+                  style={{ 
+                    flex: 1, 
+                    overflowY: 'auto', 
+                    maxHeight: '350px', 
+                    paddingRight: '4px', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '12px', 
+                    marginBottom: '16px',
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none'
+                  }}
+                >
+                  {chatMessages.map((msg, idx) => (
+                    <ChatMessageBubble 
+                      key={idx} 
+                      msg={msg} 
+                      isLatest={idx === chatMessages.length - 1} 
+                    />
+                  ))}
+                  {chatLoading && (
+                    <div style={{ alignSelf: 'flex-start', maxWidth: '80%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px 16px 16px 4px', padding: '12px 14px' }}>
+                      <Spin label="AI Coach is thinking..." />
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
                 </div>
-                {detailedAnalysis.missingThings.length === 0 ? (
-                  <p style={{ fontSize: '0.82rem', color: '#34d399' }}>✓ You satisfy all requirements!</p>
-                ) : (
-                  <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    {detailedAnalysis.missingThings.map((thing, idx) => (
+
+                {/* Input Area */}
+                <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
+                  <input
+                    type="text"
+                    placeholder="Ask prep coach anything about this role..."
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    disabled={chatLoading}
+                    style={{
+                      flex: 1,
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      color: '#fff',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    className="hm-btn hm-btn-accent"
+                    disabled={chatLoading || !chatInput.trim()}
+                    style={{ padding: '0 24px', minHeight: 'unset', width: 'auto', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    Send
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="flex-col-gap-4">
+                
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 600 }}>{selectedJob.title}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
+                    <span className={`hm-score ${scoreClass(detailedAnalysis.score)}`}>
+                      {detailedAnalysis.score}% Match Score
+                    </span>
+                  </div>
+                </div>
+
+                {/* Section 1: Missing Things */}
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fbbf24', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+                    <ExclamationIco />
+                    Missing Skills & Requirements
+                  </div>
+                  {detailedAnalysis.missingThings.length === 0 ? (
+                    <p style={{ fontSize: '0.82rem', color: '#34d399' }}>✓ You satisfy all requirements!</p>
+                  ) : (
+                    <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      {detailedAnalysis.missingThings.map((thing, idx) => (
+                        <li key={idx} style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)', lineHeight: '1.4' }}>
+                          {thing}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Section 2: Resume Improvements */}
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px' }}>
+                  <div style={{ color: '#60a5fa', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+                    ✦ Resume Suggestions
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {detailedAnalysis.improvements.map((tip, idx) => (
                       <li key={idx} style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)', lineHeight: '1.4' }}>
-                        {thing}
+                        {tip}
                       </li>
                     ))}
                   </ul>
-                )}
-              </div>
-
-              {/* Section 2: Resume Improvements */}
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px' }}>
-                <div style={{ color: '#60a5fa', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
-                  ✦ Resume Suggestions
                 </div>
-                <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {detailedAnalysis.improvements.map((tip, idx) => (
-                    <li key={idx} style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)', lineHeight: '1.4' }}>
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
-              </div>
 
-              {/* Section 3: Interview Prep */}
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', padding: '16px', marginTop: '10px' }}>
-                <div style={{ color: '#34d399', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
-                  💡 Interview Preparation Guide
+                {/* Section 3: Interview Prep */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', padding: '16px', marginTop: '10px' }}>
+                  <div style={{ color: '#34d399', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
+                    💡 Interview Preparation Guide
+                  </div>
+                  <ol style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                    {detailedAnalysis.prepGuide.map((step, idx) => (
+                      <li key={idx} style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.8)', lineHeight: '1.4' }}>
+                        {step}
+                      </li>
+                    ))}
+                  </ol>
+
+                  {/* Let's Prepare Button */}
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      className="hm-btn hm-btn-accent"
+                      style={{ padding: '8px 18px', fontSize: '0.82rem', borderRadius: '10px' }}
+                      onClick={startPrepChat}
+                    >
+                      <SparklesIcon />
+                      Let's Prepare!
+                    </button>
+                  </div>
                 </div>
-                <ol style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {detailedAnalysis.prepGuide.map((step, idx) => (
-                    <li key={idx} style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.8)', lineHeight: '1.4' }}>
-                      {step}
-                    </li>
-                  ))}
-                </ol>
-              </div>
 
-            </div>
+              </div>
+            )
           ) : (
             <div className="hm-empty">
               <p>Could not load analysis details.</p>

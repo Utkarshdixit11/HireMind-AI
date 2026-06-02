@@ -14,8 +14,42 @@ export const getTextFromPdf = async (file: File): Promise<string> => {
     try {
       const page = await pdf.getPage(i);
       const text = await page.getTextContent();
-      textContent += text.items.map((item: any) => item.str).join(' ');
-      textContent += '\n'; // Add a newline for separation between pages
+      
+      const items = text.items as any[];
+      if (items.length === 0) continue;
+      
+      // Group items on the same page by Y coordinate to preserve vertical layout
+      const linesMap: { [y: number]: any[] } = {};
+      const yValues: number[] = [];
+      const threshold = 5; // tolerance threshold for item heights
+      
+      for (const item of items) {
+        if (!item.str || item.str.trim() === '') continue;
+        const y = item.transform[5];
+        
+        let foundGroupY = yValues.find(val => Math.abs(val - y) < threshold);
+        if (foundGroupY === undefined) {
+          yValues.push(y);
+          linesMap[y] = [item];
+        } else {
+          linesMap[foundGroupY].push(item);
+        }
+      }
+      
+      // Sort lines top-to-bottom (Y decreasing)
+      yValues.sort((a, b) => b - a);
+      
+      let pageText = '';
+      for (const y of yValues) {
+        // Sort items inside this line left-to-right (X increasing)
+        const lineItems = linesMap[y];
+        lineItems.sort((a, b) => a.transform[4] - b.transform[4]);
+        
+        const lineStr = lineItems.map(item => item.str).join(' ');
+        pageText += lineStr + '\n';
+      }
+      
+      textContent += pageText + '\n';
     } catch (error) {
       console.error(`Error processing page ${i}:`, error);
     }

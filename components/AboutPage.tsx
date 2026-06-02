@@ -184,7 +184,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack }) => {
                   <div className="about-feature-item">
                     <span className="about-feature-dot" style={{ background: '#60a5fa' }} />
                     <div>
-                      <strong>AI Resume Scorer</strong>
+                      <strong>Resume</strong>
                       <p>Upload any resume against a job description and get an instant match percentage with gap analysis and suggestions.</p>
                     </div>
                   </div>

@@ -27,6 +27,21 @@ const MoonIcon = () => (
   </svg>
 );
 
+const MenuIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="4" x2="20" y1="12" y2="12" />
+    <line x1="4" x2="20" y1="6" y2="6" />
+    <line x1="4" x2="20" y1="18" y2="18" />
+  </svg>
+);
+
+const XIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" x2="6" y1="6" y2="18" />
+    <line x1="6" x2="18" y1="6" y2="18" />
+  </svg>
+);
+
 export const Header: React.FC<HeaderProps> = ({ view, setView, onOpenAuth }) => {
   const { user, isAuthenticated, logout, isLoading, loginAsGuest } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -34,6 +49,7 @@ export const Header: React.FC<HeaderProps> = ({ view, setView, onOpenAuth }) => 
   const [authMessage, setAuthMessage] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -64,18 +80,9 @@ export const Header: React.FC<HeaderProps> = ({ view, setView, onOpenAuth }) => 
 
   const handleLogoClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!isAuthenticated) {
-      setView('landing');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      if (user?.role === 'guest') {
-        logout();
-        setView('landing');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        setView('board');
-      }
-    }
+    setView('landing');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -95,67 +102,78 @@ export const Header: React.FC<HeaderProps> = ({ view, setView, onOpenAuth }) => 
             <div className="nav2-links">
               {/* Home */}
               <button
-                className={`nav2-link${(!isAuthenticated && view === 'landing') || (isAuthenticated && user?.role === 'guest' && view === 'landing') || (isAuthenticated && user?.role !== 'guest' && view === 'board') ? ' active' : ''}`}
+                className={`nav2-link${view === 'landing' ? ' active' : ''}`}
                 onClick={() => {
-                  if (!isAuthenticated || user?.role === 'guest') {
-                    if (user?.role === 'guest') {
-                      logout();
-                    }
-                    setView('landing');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  } else {
-                    setView('board');
-                  }
+                  setView('landing');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
               >
                 Home
               </button>
 
-              {/* AI Resume Scorer */}
-              <button
-                className={`nav2-link${view === 'guest-scorer' ? ' active' : ''}`}
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    loginAsGuest();
-                  }
-                  setView('guest-scorer');
-                }}
-              >
-                AI Resume Scorer
-              </button>
+              {/* Resume - Hidden for Recruiter (provider) */}
+              {(!isAuthenticated || user?.role !== 'provider') && (
+                <button
+                  className={`nav2-link${view === 'guest-scorer' || view === 'resume' ? ' active' : ''}`}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      loginAsGuest();
+                      setView('guest-scorer');
+                    } else if (user?.role === 'seeker') {
+                      setView('resume');
+                    } else {
+                      setView('guest-scorer');
+                    }
+                  }}
+                >
+                  Resume
+                </button>
+              )}
 
-              {/* Browse Jobs */}
-              <button
-                className={`nav2-link${view === 'board' && (isAuthenticated && user?.role !== 'guest') ? ' active' : ''}`}
-                onClick={() => {
-                  if (!isAuthenticated || user?.role === 'guest') {
-                    setAuthMode('signup');
-                    setAuthMessage('You have to login first to browse jobs.');
-                    setShowAuthModal(true);
-                  } else {
-                    setView('board');
-                  }
-                }}
-              >
-                Browse Jobs
-              </button>
+              {/* Browse Jobs - Hidden for Recruiter */}
+              {(!isAuthenticated || user?.role !== 'provider') && (
+                <button
+                  className={`nav2-link${view === 'board' ? ' active' : ''}`}
+                  onClick={() => {
+                    if (!isAuthenticated || user?.role === 'guest') {
+                      setAuthMode('signup');
+                      setAuthMessage('You have to login first to browse jobs.');
+                      setShowAuthModal(true);
+                    } else {
+                      setView('board');
+                    }
+                  }}
+                >
+                  Browse Jobs
+                </button>
+              )}
 
-              {/* About Us */}
-              <button
-                className={`nav2-link${view === 'about' ? ' active' : ''}`}
-                onClick={() => setView('about')}
-              >
-                About Us
-              </button>
+              {/* About Us - Hidden for logged-in real users, visible to guests */}
+              {(!isAuthenticated || user?.role === 'guest') && (
+                <button
+                  className={`nav2-link${view === 'about' ? ' active' : ''}`}
+                  onClick={() => setView('about')}
+                >
+                  About Us
+                </button>
+              )}
 
               {/* Role-Specific Tabs (For seeker/provider) */}
               {isAuthenticated && user && user.role === 'seeker' && (
-                <button
-                  className={`nav2-link${view === 'prep' ? ' active' : ''}`}
-                  onClick={() => setView('prep')}
-                >
-                  Prep Coach
-                </button>
+                <>
+                  <button
+                    className={`nav2-link${view === 'matches' ? ' active' : ''}`}
+                    onClick={() => setView('matches')}
+                  >
+                    Suitable Matches
+                  </button>
+                  <button
+                    className={`nav2-link${view === 'prep' ? ' active' : ''}`}
+                    onClick={() => setView('prep')}
+                  >
+                    Prep Coach
+                  </button>
+                </>
               )}
 
               {isAuthenticated && user && user.role === 'provider' && (
@@ -238,7 +256,129 @@ export const Header: React.FC<HeaderProps> = ({ view, setView, onOpenAuth }) => 
                 </button>
               </>
             )}
+
+            {/* Hamburger Menu Toggle (Mobile) */}
+            <button className="nav2-hamburger" onClick={() => setIsMobileMenuOpen(p => !p)} aria-label="Toggle menu">
+              {isMobileMenuOpen ? <XIcon /> : <MenuIcon />}
+            </button>
           </div>
+
+          {/* Mobile Dropdown Menu */}
+          {isMobileMenuOpen && (
+            <div className="nav2-mobile-menu">
+              {/* Home */}
+              <button
+                className={`nav2-mobile-link${view === 'landing' ? ' active' : ''}`}
+                onClick={() => {
+                  setView('landing');
+                  setIsMobileMenuOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                Home
+              </button>
+
+              {/* Resume - Hidden for Recruiter (provider) */}
+              {(!isAuthenticated || user?.role !== 'provider') && (
+                <button
+                  className={`nav2-mobile-link${view === 'guest-scorer' || view === 'resume' ? ' active' : ''}`}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    if (!isAuthenticated) {
+                      loginAsGuest();
+                      setView('guest-scorer');
+                    } else if (user?.role === 'seeker') {
+                      setView('resume');
+                    } else {
+                      setView('guest-scorer');
+                    }
+                  }}
+                >
+                  Resume
+                </button>
+              )}
+
+              {/* Browse Jobs - Hidden for Recruiter */}
+              {(!isAuthenticated || user?.role !== 'provider') && (
+                <button
+                  className={`nav2-mobile-link${view === 'board' ? ' active' : ''}`}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    if (!isAuthenticated || user?.role === 'guest') {
+                      setAuthMode('signup');
+                      setAuthMessage('You have to login first to browse jobs.');
+                      setShowAuthModal(true);
+                    } else {
+                      setView('board');
+                    }
+                  }}
+                >
+                  Browse Jobs
+                </button>
+              )}
+
+              {/* About Us - Hidden for logged-in real users, visible to guests */}
+              {(!isAuthenticated || user?.role === 'guest') && (
+                <button
+                  className={`nav2-mobile-link${view === 'about' ? ' active' : ''}`}
+                  onClick={() => {
+                    setView('about');
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                  About Us
+                </button>
+              )}
+
+              {/* Seeker Specific */}
+              {isAuthenticated && user && user.role === 'seeker' && (
+                <>
+                  <button
+                    className={`nav2-mobile-link${view === 'matches' ? ' active' : ''}`}
+                    onClick={() => {
+                      setView('matches');
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    Suitable Matches
+                  </button>
+                  <button
+                    className={`nav2-mobile-link${view === 'prep' ? ' active' : ''}`}
+                    onClick={() => {
+                      setView('prep');
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    Prep Coach
+                  </button>
+                </>
+              )}
+
+              {/* Recruiter Specific */}
+              {isAuthenticated && user && user.role === 'provider' && (
+                <>
+                  <button
+                    className={`nav2-mobile-link${view === 'post' ? ' active' : ''}`}
+                    onClick={() => {
+                      setView('post');
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    Post Job
+                  </button>
+                  <button
+                    className={`nav2-mobile-link${view === 'tracker' ? ' active' : ''}`}
+                    onClick={() => {
+                      setView('tracker');
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    Candidate Tracker
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </nav>
       </header>
 

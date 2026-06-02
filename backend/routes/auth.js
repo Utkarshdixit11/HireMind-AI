@@ -24,9 +24,13 @@ router.post('/login', authLimiter, login);
 router.get('/me', protect, getMe);
 
 // Google OAuth
-router.get('/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+router.get('/google', (req, res, next) => {
+  const role = req.query.role || 'seeker';
+  passport.authenticate('google', { 
+    scope: ['profile', 'email'],
+    state: JSON.stringify({ role })
+  })(req, res, next);
+});
 
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}?error=google_auth_failed`, session: false }),
