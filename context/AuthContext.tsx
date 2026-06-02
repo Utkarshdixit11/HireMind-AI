@@ -1,11 +1,23 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { User, LoginCredentials, SignupCredentials } from '../types';
 
-const API_BASE = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:5000/api')
-  ? import.meta.env.VITE_API_URL
-  : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5000/api'
-    : `${window.location.origin}/api`);
+const getApiBase = () => {
+  let base = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:5000/api')
+    ? import.meta.env.VITE_API_URL
+    : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5000/api'
+      : `${window.location.origin}/api`);
+
+  if (base.endsWith('/')) {
+    base = base.slice(0, -1);
+  }
+  if (!base.endsWith('/api')) {
+    base = `${base}/api`;
+  }
+  return base;
+};
+
+const API_BASE = getApiBase();
 
 interface AuthContextValue {
   user: User | null;
