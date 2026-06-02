@@ -25,9 +25,23 @@ passport.use(
             user.provider = 'google';
             user.isVerified = true;
             if (profile.photos?.[0]?.value) user.avatar = profile.photos[0].value;
-            await user.save({ validateBeforeSave: false });
           }
           user.lastLogin = new Date();
+
+          // Determine role from state and update user's role dynamically
+          if (req.query && req.query.state) {
+            try {
+              const stateObj = JSON.parse(req.query.state);
+              if (stateObj && stateObj.role) {
+                user.role = stateObj.role;
+              }
+            } catch (e) {
+              if (req.query.state === 'provider' || req.query.state === 'seeker') {
+                user.role = req.query.state;
+              }
+            }
+          }
+
           await user.save({ validateBeforeSave: false });
           return done(null, user);
         }

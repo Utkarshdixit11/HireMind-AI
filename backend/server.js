@@ -41,6 +41,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/users', userRoutes);
 
+// ── Serve frontend static files ──
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../dist')));
+
 // ── Health check ──────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({
@@ -48,6 +52,18 @@ app.get('/api/health', (req, res) => {
     message: 'HireMind AI Backend is running.',
     timestamp: new Date().toISOString(),
     db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+  });
+});
+
+// ── SPA routing wildcard ──
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, '../dist/index.html'), (err) => {
+    if (err) {
+      next();
+    }
   });
 });
 

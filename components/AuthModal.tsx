@@ -289,7 +289,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialMode = 'lo
                   </div>
                 )}
 
-                <button className="auth-google-btn" onClick={() => loginWithGoogle(mode === 'signup' ? role : 'seeker')} type="button" id="btn-google-signin" style={{ width: '100%', marginBottom: '12px' }}>
+                <button className="auth-google-btn" onClick={() => loginWithGoogle(role)} type="button" id="btn-google-signin" style={{ width: '100%', marginBottom: '12px' }}>
                   <GoogleIcon /><span>Continue with Google</span>
                 </button>
 
@@ -363,38 +363,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialMode = 'lo
                     {passwordError && <p className="auth-field-error-msg">⚠️ {passwordError}</p>}
                   </div>
 
-                  {/* Role selection for signup */}
-                  {mode === 'signup' && (
-                    <div className="auth-field">
-                      <label className="auth-label">I am a</label>
-                      <div className="auth-role-wrap">
-                        <button
-                          type="button"
-                          className={`auth-role-btn${role === 'seeker' ? ' active' : ''}`}
-                          onClick={() => setRole('seeker')}
-                          id="role-seeker"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
-                          </svg>
-                          Job Seeker
-                        </button>
-                        <button
-                          type="button"
-                          className={`auth-role-btn${role === 'provider' ? ' active' : ''}`}
-                          onClick={() => setRole('provider')}
-                          id="role-provider"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="2" y="7" width="20" height="14" rx="2"/>
-                            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                          </svg>
-                          Recruiter
-                        </button>
-                      </div>
+                  {/* Role selection */}
+                  <div className="auth-field">
+                    <label className="auth-label">I am a</label>
+                    <div className="auth-role-wrap">
+                      <button
+                        type="button"
+                        className={`auth-role-btn${role === 'seeker' ? ' active' : ''}`}
+                        onClick={() => setRole('seeker')}
+                        id="role-seeker"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                          <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        Job Seeker
+                      </button>
+                      <button
+                        type="button"
+                        className={`auth-role-btn${role === 'provider' ? ' active' : ''}`}
+                        onClick={() => setRole('provider')}
+                        id="role-provider"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="2" y="7" width="20" height="14" rx="2"/>
+                          <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                        </svg>
+                        Recruiter
+                      </button>
                     </div>
-                  )}
+                  </div>
 
                   <button
                     type="submit"

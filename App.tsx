@@ -16,7 +16,11 @@ const VIDEO_URL =
 
 type AppView = 'board' | 'resume' | 'matches' | 'prep' | 'post' | 'tracker' | 'guest-scorer' | 'landing' | 'about';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:5000/api')
+  ? import.meta.env.VITE_API_URL
+  : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000/api'
+    : `${window.location.origin}/api`);
 
 const AppInner: React.FC = () => {
   const { isAuthenticated, isLoading, user, token, loginAsGuest } = useAuth();
