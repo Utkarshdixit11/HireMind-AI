@@ -141,7 +141,8 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
       setTimeout(() => setSaveSuccess(false), 3000);
       setJobTitle(''); setJobDesc(''); setUploadedFile(''); setSelectedJob(finalJob);
     } catch (err: any) {
-      setError(err.message || 'Failed to create job.');
+      console.error('Job creation failed:', err);
+      setError(`Failed to post job. [Endpoint: ${API_BASE}/jobs] [Error: ${err.message || err}]`);
     } finally {
       setLoading(false);
     }
