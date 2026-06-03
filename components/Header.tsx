@@ -138,23 +138,7 @@ export const Header: React.FC<HeaderProps> = ({ view, setView, onOpenAuth }) => 
                 </button>
               )}
 
-              {/* Browse Jobs - Hidden for Recruiter */}
-              {(!isAuthenticated || user?.role !== 'provider') && (
-                <button
-                  className={`nav2-link${view === 'board' ? ' active' : ''}`}
-                  onClick={() => {
-                    if (!isAuthenticated || user?.role === 'guest') {
-                      setAuthMode('signup');
-                      setAuthMessage('You have to login first to browse jobs.');
-                      setShowAuthModal(true);
-                    } else {
-                      setView('board');
-                    }
-                  }}
-                >
-                  Browse Jobs
-                </button>
-              )}
+
 
               {/* About Us - Hidden for logged-in real users, visible to guests */}
               {(!isAuthenticated || user?.role === 'guest') && (
@@ -310,24 +294,7 @@ export const Header: React.FC<HeaderProps> = ({ view, setView, onOpenAuth }) => 
                 </button>
               )}
 
-              {/* Browse Jobs - Hidden for Recruiter */}
-              {(!isAuthenticated || user?.role !== 'provider') && (
-                <button
-                  className={`nav2-mobile-link${view === 'board' ? ' active' : ''}`}
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    if (!isAuthenticated || user?.role === 'guest') {
-                      setAuthMode('signup');
-                      setAuthMessage('You have to login first to browse jobs.');
-                      setShowAuthModal(true);
-                    } else {
-                      setView('board');
-                    }
-                  }}
-                >
-                  Browse Jobs
-                </button>
-              )}
+
 
               {/* About Us - Hidden for logged-in real users, visible to guests */}
               {(!isAuthenticated || user?.role === 'guest') && (
