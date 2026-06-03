@@ -60,7 +60,7 @@ router.get('/user/mine', protect, async (req, res) => {
   }
 });
 
-// DELETE job (mark as closed)
+// DELETE job (mark as closed, or delete permanently if already closed/requested)
 router.delete('/:id', protect, async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
@@ -68,9 +68,17 @@ router.delete('/:id', protect, async (req, res) => {
     if (job.postedBy.toString() !== req.userId) {
       return res.status(403).json({ message: 'Not authorized.' });
     }
-    job.status = 'closed';
-    await job.save();
-    res.json({ message: 'Job marked as closed.' });
+    
+    const isPermanent = req.query.permanent === 'true' || job.status === 'closed';
+    
+    if (isPermanent) {
+      await Job.findByIdAndDelete(req.params.id);
+      res.json({ message: 'Job permanently deleted.' });
+    } else {
+      job.status = 'closed';
+      await job.save();
+      res.json({ message: 'Job marked as closed.' });
+    }
   } catch (err) {
     res.status(500).json({ message: 'Server error.' });
   }
