@@ -3955,3 +3955,117 @@ body {
   -ms-overflow-style: none !important;  /* IE and Edge */
   scrollbar-width: none !important;  /* Firefox */
 }
+
+/* ── Mobile Responsive Overrides for Landing Page ── */
+@media (max-width: 640px) {
+  /* Make Hero more compact */
+  .lp-hero {
+    padding: 48px 16px 32px;
+  }
+  .lp-hero-badge {
+    font-size: 0.7rem;
+    padding: 4px 12px;
+    margin-bottom: 20px;
+  }
+  .lp-hero-title {
+    font-size: clamp(2rem, 9vw, 3rem);
+    margin-bottom: 16px;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+  }
+  .lp-hero-sub {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 24px;
+    padding: 0 8px;
+  }
+  .lp-hero-ctas {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    max-width: 290px;
+    gap: 10px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .lp-btn-primary, .lp-btn-google {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 20px;
+    font-size: 0.88rem;
+  }
+  
+  /* Make Workflow Section more compact */
+  .lp-workflow-section {
+    padding: 40px 16px 40px;
+  }
+  .lp-workflow-header {
+    margin-bottom: 32px;
+  }
+  .lp-workflow-title {
+    font-size: clamp(1.6rem, 8vw, 2.2rem);
+    line-height: 1.1;
+  }
+  .lp-workflow-sub {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .workflow-toggle-container {
+    margin-bottom: 32px;
+    transform: scale(0.9);
+  }
+  
+  /* Workflow Cards Optimization */
+  .workflow-card {
+    padding: 20px 16px;
+    border-radius: 20px;
+  }
+  .workflow-card-header {
+    margin-bottom: 16px;
+  }
+  .workflow-card-title {
+    font-size: 1.4rem;
+  }
+  .workflow-card-desc {
+    font-size: 0.8rem;
+  }
+  
+  .workflow-steps {
+    gap: 12px;
+  }
+  .workflow-step {
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .wf-step-num {
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+  .wf-step-title {
+    font-size: 0.88rem;
+  }
+  .wf-step-desc {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+  .wf-anim-container {
+    padding: 10px;
+    border-radius: 8px;
+  }
+  .wf-anim-box {
+    min-height: 100px;
+    transform: scale(0.9);
+    transform-origin: center;
+  }
+  
+  /* Bottom CTA section */
+  .lp-cta-section {
+    padding: 32px 16px 48px;
+  }
+  .lp-cta-inner {
+    padding: 32px 20px;
+    border-radius: 20px;
+  }
+}
