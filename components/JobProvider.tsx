@@ -295,77 +295,151 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
           </div>
         </div>
 
-        {/* List of active postings */}
+        {/* List of active and past postings */}
         {(() => {
           const openJobs = jobs.filter(j => 
             !applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
           );
+          const pastJobs = jobs.filter(j => 
+            applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
+          );
           return (
-            <div className="hm-card glass-card">
-              <div className="hm-card-title">
-                <div className="hm-card-icon"><BriefIco /></div>
-                Active Postings
-                <span className="hm-count">{openJobs.length}</span>
-              </div>
-              {openJobs.length === 0 ? (
-                <div className="hm-empty">
-                  <div className="hm-empty-icon"><BriefIco /></div>
-                  <p>You have not published any open job listings yet.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+              {/* Active Postings */}
+              <div className="hm-card glass-card">
+                <div className="hm-card-title">
+                  <div className="hm-card-icon"><BriefIco /></div>
+                  Active Postings
+                  <span className="hm-count">{openJobs.length}</span>
                 </div>
-              ) : (
-                <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                  {openJobs.map(j => (
-                <div 
-                  key={j.id} 
-                  className="hm-match-card"
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    background: 'rgba(255,255,255,0.02)',
-                    padding: '16px',
-                    borderRadius: '12px'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.94rem' }}>{j.title}</div>
-                    {onDeleteJob && (
-                      <button
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete the job opening: "${j.title}"?`)) {
-                            onDeleteJob(j.id);
-                          }
-                        }}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: '6px',
-                          transition: 'background 0.2s'
-                        }}
-                        title="Delete Job"
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <TrashIco />
-                      </button>
-                    )}
+                {openJobs.length === 0 ? (
+                  <div className="hm-empty">
+                    <div className="hm-empty-icon"><BriefIco /></div>
+                    <p>You have not published any open job listings yet.</p>
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '8px', lineHeight: '1.5', whiteSpace: 'pre-wrap', width: '100%' }}>
-                    {j.description}
-                  </p>
+                ) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {openJobs.map(j => (
+                      <div 
+                        key={j.id} 
+                        className="hm-match-card"
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          border: '1px solid rgba(255,255,255,0.05)',
+                          background: 'rgba(255,255,255,0.02)',
+                          padding: '16px',
+                          borderRadius: '12px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                          <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.94rem' }}>{j.title}</div>
+                          {onDeleteJob && (
+                            <button
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to delete the job opening: "${j.title}"?`)) {
+                                  onDeleteJob(j.id);
+                                }
+                              }}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifycontent: 'center',
+                                borderRadius: '6px',
+                                transition: 'background 0.2s'
+                              }}
+                              title="Delete Job"
+                              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'}
+                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <TrashIco />
+                            </button>
+                          )}
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '8px', lineHeight: '1.5', whiteSpace: 'pre-wrap', width: '100%' }}>
+                          {j.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Past Postings (Closed) */}
+              <div className="hm-card glass-card">
+                <div className="hm-card-title">
+                  <div className="hm-card-icon" style={{ color: 'rgba(255,255,255,0.4)' }}><BriefIco /></div>
+                  Past Postings (Closed)
+                  <span className="hm-count" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>{pastJobs.length}</span>
                 </div>
-              ))}
+                {pastJobs.length === 0 ? (
+                  <div className="hm-empty">
+                    <div className="hm-empty-icon"><BriefIco /></div>
+                    <p>No past or closed listings found.</p>
+                  </div>
+                ) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {pastJobs.map(j => (
+                      <div 
+                        key={j.id} 
+                        className="hm-match-card"
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          border: '1px solid rgba(255,255,255,0.03)',
+                          background: 'rgba(255,255,255,0.01)',
+                          padding: '16px',
+                          borderRadius: '12px',
+                          opacity: 0.75
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                          <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', fontSize: '0.94rem' }}>
+                            {j.title} <span style={{ fontSize: '0.72rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: '12px', marginLeft: '8px' }}>Filled / Shortlisted</span>
+                          </div>
+                          {onDeleteJob && (
+                            <button
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to delete the past job opening: "${j.title}"?`)) {
+                                  onDeleteJob(j.id);
+                                }
+                              }}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifycontent: 'center',
+                                borderRadius: '6px',
+                                transition: 'background 0.2s'
+                              }}
+                              title="Delete Job"
+                              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'}
+                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <TrashIco />
+                            </button>
+                          )}
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginTop: '8px', lineHeight: '1.5', whiteSpace: 'pre-wrap', width: '100%' }}>
+                          {j.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      );
-    })()}
+          );
+        })()}
 
       </div>
     );
