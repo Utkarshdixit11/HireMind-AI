@@ -130,9 +130,16 @@ const AppInner: React.FC = () => {
 
   const fetchJobs = async () => {
     try {
-      const res = await fetch(`${API_BASE}/jobs`);
+      const isRecruiter = isAuthenticated && user && user.role === 'provider';
+      const url = isRecruiter ? `${API_BASE}/jobs/user/mine` : `${API_BASE}/jobs`;
+      const headers: HeadersInit = {};
+      if (isRecruiter && token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(url, { headers });
       const data = await res.json();
-      if (data.jobs && data.jobs.length > 0) {
+      if (data.jobs) {
         const mappedJobs = data.jobs.map((j: any) => ({
           id: j._id || j.id,
           title: j.title,
@@ -140,6 +147,8 @@ const AppInner: React.FC = () => {
           extractedInfo: j.extractedInfo || { requiredSkills: [], experienceSummary: '' }
         }));
         setJobs(mappedJobs);
+      } else {
+        setJobs([]);
       }
     } catch (e) {
       console.log('Failed to fetch jobs from API, using local mock/state', e);
@@ -148,7 +157,7 @@ const AppInner: React.FC = () => {
 
   React.useEffect(() => {
     fetchJobs();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user, token]);
 
   const handleOpenAuth = (mode: 'login' | 'signup') => {
     setAuthMode(mode);
@@ -167,8 +176,8 @@ const AppInner: React.FC = () => {
           setView('board');
         }
       } else if (user.role === 'provider') {
-        if (view === 'resume' || view === 'matches' || view === 'prep' || view === 'guest-scorer') {
-          setView('board');
+        if (view === 'board' || view === 'resume' || view === 'matches' || view === 'prep' || view === 'guest-scorer') {
+          setView('post');
         }
       }
     } else {

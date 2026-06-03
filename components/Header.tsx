@@ -80,7 +80,11 @@ export const Header: React.FC<HeaderProps> = ({ view, setView, onOpenAuth }) => 
 
   const handleLogoClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    setView('landing');
+    if (isAuthenticated && user && user.role !== 'guest') {
+      setView('board');
+    } else {
+      setView('landing');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setIsMobileMenuOpen(false);
   };
@@ -102,9 +106,13 @@ export const Header: React.FC<HeaderProps> = ({ view, setView, onOpenAuth }) => 
             <div className="nav2-links">
               {/* Home */}
               <button
-                className={`nav2-link${view === 'landing' ? ' active' : ''}`}
+                className={`nav2-link${(view === 'landing' || (isAuthenticated && user && user.role !== 'guest' && view === 'board')) ? ' active' : ''}`}
                 onClick={() => {
-                  setView('landing');
+                  if (isAuthenticated && user && user.role !== 'guest') {
+                    setView('board');
+                  } else {
+                    setView('landing');
+                  }
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
               >
@@ -268,9 +276,13 @@ export const Header: React.FC<HeaderProps> = ({ view, setView, onOpenAuth }) => 
             <div className="nav2-mobile-menu">
               {/* Home */}
               <button
-                className={`nav2-mobile-link${view === 'landing' ? ' active' : ''}`}
+                className={`nav2-mobile-link${(view === 'landing' || (isAuthenticated && user && user.role !== 'guest' && view === 'board')) ? ' active' : ''}`}
                 onClick={() => {
-                  setView('landing');
+                  if (isAuthenticated && user && user.role !== 'guest') {
+                    setView('board');
+                  } else {
+                    setView('landing');
+                  }
                   setIsMobileMenuOpen(false);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
