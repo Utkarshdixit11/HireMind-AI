@@ -1,5 +1,11 @@
 # HireMind AI — Where Careers Rise
 
+![React](https://img.shields.io/badge/React-TypeScript-blue)
+![Node.js](https://img.shields.io/badge/Backend-Node.js-green)
+![MongoDB](https://img.shields.io/badge/DB-MongoDB-brightgreen)
+
+⚡ **Live Demo:** [https://hire-mind-ai-ud.vercel.app/](https://hire-mind-ai-ud.vercel.app/)
+
 ![HireMind AI Banner](./Screenshot/intro.png)
 
 **HireMind AI** is a premium, high-performance, cinematic recruitment ecosystem designed to streamline the career journey for job seekers and scale talent pipelines for companies. By utilizing state-of-the-art server-side integration with **Google Gemini AI**, HireMind parses resumes, checks matching scores, guides applicants with an interactive AI prep coach, and automates recruiter workflows.
@@ -55,5 +61,5 @@ Upload resumes, view suitable listings, check compatibility scores, and prepare 
 Post new job openings, manage active listings, review candidate rankings, and view fit analyses.
 ![Recruiter Dashboard](./Screenshot/recruiterHome.png)
 ![Create Job Postings](./Screenshot/PostJob_recruiter.png)
-![Detailed Fit Analysis](./Screenshot/Detailed analysis.png)
-![Candidate Tracker Pipeline](./Screenshot/Candigate tracker.png)
+![Detailed Fit Analysis](./Screenshot/Detailed_analysis.png)
+![Candidate Tracker Pipeline](./Screenshot/Candidate_tracker.png)
