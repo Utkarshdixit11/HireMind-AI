@@ -60,7 +60,7 @@ router.get('/user/mine', protect, async (req, res) => {
   }
 });
 
-// DELETE job
+// DELETE job (mark as closed)
 router.delete('/:id', protect, async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
@@ -68,8 +68,9 @@ router.delete('/:id', protect, async (req, res) => {
     if (job.postedBy.toString() !== req.userId) {
       return res.status(403).json({ message: 'Not authorized.' });
     }
-    await job.deleteOne();
-    res.json({ message: 'Job deleted.' });
+    job.status = 'closed';
+    await job.save();
+    res.json({ message: 'Job marked as closed.' });
   } catch (err) {
     res.status(500).json({ message: 'Server error.' });
   }

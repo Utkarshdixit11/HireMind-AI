@@ -79,10 +79,8 @@ const AppInner: React.FC = () => {
   const addJob = (job: Job) => setJobs(prev => [job, ...prev]);
 
   const deleteJob = async (jobId: string) => {
-    // Delete locally
-    setJobs(prev => prev.filter(j => j.id !== jobId));
-    // Clear associated applications
-    setApplications(prev => prev.filter(app => app.jobId !== jobId));
+    // Mark as closed locally
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'closed' } : j));
     
     // Call server API
     try {
@@ -91,9 +89,11 @@ const AppInner: React.FC = () => {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` }
         });
+        // Refetch to sync status from DB
+        fetchJobs();
       }
     } catch (e) {
-      console.log('Failed to delete job from backend API, deleted locally', e);
+      console.log('Failed to delete job from backend API', e);
     }
   };
 
@@ -144,6 +144,7 @@ const AppInner: React.FC = () => {
           id: j._id || j.id,
           title: j.title,
           description: j.description,
+          status: j.status || 'active',
           extractedInfo: j.extractedInfo || { requiredSkills: [], experienceSummary: '' }
         }));
         setJobs(mappedJobs);

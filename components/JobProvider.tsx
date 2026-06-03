@@ -244,10 +244,10 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
       <div className="hm-grid-provider-post">
         {(() => {
           const openJobs = jobs.filter(j => 
-            !applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
+            j.status !== 'closed' && !applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
           );
           const pastJobs = jobs.filter(j => 
-            applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
+            j.status === 'closed' || applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
           );
           return (
             <>
@@ -451,7 +451,7 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
         {/* List of active postings only */}
         {(() => {
           const openJobs = jobs.filter(j => 
-            !applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
+            j.status !== 'closed' && !applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
           );
           return (
             <div className="hm-card glass-card">

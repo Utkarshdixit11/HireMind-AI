@@ -401,58 +401,86 @@ How would you like to prepare today? You can ask me to test you with mock questi
             <p>No active job postings on the board to match against.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px', marginTop: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '18px', marginTop: '18px' }}>
             {jobFits.map((fit) => {
               const status = getApplicationStatus(fit.jobId);
+              const scoreColor = fit.score >= 85 ? '#34d399' : fit.score >= 70 ? '#fbbf24' : '#f87171';
               return (
                 <div
                   key={fit.jobId}
-                  className="hm-match-card"
+                  className="hm-match-card-seeker"
                   style={{
                     border: '1px solid rgba(255,255,255,0.06)',
                     background: 'rgba(255,255,255,0.02)',
-                    padding: '18px',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    padding: '20px',
                     borderRadius: '16px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    gap: '12px'
+                    gap: '14px',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                    e.currentTarget.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.25)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                    e.currentTarget.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.1)';
                   }}
                 >
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#fff' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                      <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: '#fff', letterSpacing: '-0.01em', lineHeight: '1.3' }}>
                         {fit.jobTitle}
                       </h4>
-                      <span className={`hm-score ${scoreClass(fit.score)}`} style={{ padding: '3px 8px', fontSize: '0.8rem' }}>
+                      <span className={`hm-score ${scoreClass(fit.score)}`} style={{ padding: '4px 10px', fontSize: '0.78rem', borderRadius: '20px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
                         {fit.score}% Fit
                       </span>
                     </div>
-                    <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)', marginTop: '8px', lineHeight: '1.4' }}>
+
+                    <div 
+                      style={{ 
+                        fontSize: '0.82rem', 
+                        color: 'rgba(255,255,255,0.65)', 
+                        marginTop: '12px', 
+                        lineHeight: '1.5',
+                        background: 'rgba(255, 255, 255, 0.015)',
+                        borderLeft: `3px solid ${scoreColor}`,
+                        padding: '10px 14px',
+                        borderRadius: '0 8px 8px 0',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.4)', marginBottom: '6px', fontWeight: 600 }}>
+                        <span style={{ color: scoreColor }}>✨</span> AI Matching Insight
+                      </div>
                       {fit.justification}
-                    </p>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
-                    <div style={{ fontsize: '0.78rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
+                    <div style={{ fontSize: '0.8rem' }}>
                       <span style={{ color: 'rgba(255,255,255,0.4)' }}>Status: </span>
-                      <span style={{ color: status === 'Applied' ? '#60a5fa' : status === 'Shortlisted' ? '#34d399' : 'rgba(255,255,255,0.3)', fontWeight: 500 }}>
-                        {status}
+                      <span style={{ color: status === 'Applied' ? '#60a5fa' : status === 'Shortlisted' ? '#34d399' : 'rgba(255,255,255,0.3)', fontWeight: 600 }}>
+                        {status === 'Applied' ? 'Applied ✓' : status}
                       </span>
                     </div>
 
-                    {status === 'Not Applied' ? (
+                    {status === 'Not Applied' && (
                       <button
                         className="hm-btn hm-btn-accent"
-                        style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px', minHeight: 'unset' }}
+                        style={{ padding: '6px 16px', fontSize: '0.8rem', borderRadius: '8px', minHeight: 'unset' }}
                         onClick={() => onApply(fit.jobId, applicant, fit.score, fit.justification)}
                       >
                         Apply Now
                       </button>
-                    ) : (
-                      <span style={{ fontSize: '0.8rem', color: '#34d399', fontWeight: 600 }}>
-                        Applied ✓
-                      </span>
                     )}
                   </div>
                 </div>
