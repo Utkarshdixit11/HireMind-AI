@@ -238,64 +238,10 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
   const getScoreClass = (s: number) => s >= 85 ? 'hm-score-high' : s >= 70 ? 'hm-score-mid' : 'hm-score-low';
 
   // ── PAGE 1: POST A JOB ──
-  if (view === 'post') {
+  // ── RECRUITER BOARD (HOME SCREEN) ──
+  if (view === 'board') {
     return (
       <div className="hm-grid-provider-post">
-        
-        {/* Form to post a job */}
-        <div className="hm-card glass-card">
-          <div className="hm-card-title">
-            <div className="hm-card-icon"><BriefIco /></div>
-            Post a New Position
-          </div>
-          <div className="flex-col-gap-3">
-            <div>
-              <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '6px' }}>
-                Job Title
-              </label>
-              <input 
-                id="job-title-input" 
-                className={`hm-input${titleError ? ' invalid-input' : ''}`} 
-                placeholder="e.g. Senior React Developer" 
-                value={jobTitle} 
-                onChange={e=>{ setJobTitle(e.target.value); setTitleError(''); }}
-                style={{ width: '100%' }}
-              />
-              {titleError && <p className="auth-field-error-msg">⚠️ {titleError}</p>}
-            </div>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '6px' }}>
-                Job Description Details
-              </label>
-              <textarea 
-                id="job-desc-input" 
-                className={`hm-textarea${descError ? ' invalid-input' : ''}`} 
-                placeholder="Provide clear specifications, required skills, and experience constraints (e.g. 'requires 2+ years of experience')" 
-                rows={8} 
-                value={jobDesc} 
-                onChange={e=>{ setJobDesc(e.target.value); setDescError(''); }}
-                style={{ width: '100%', resize: 'vertical' }}
-              />
-              {descError && <p className="auth-field-error-msg">⚠️ {descError}</p>}
-            </div>
-            <label className="hm-upload-label" htmlFor="jd-upload">
-              <UploadIcon/>
-              <span>{uploadedFile || 'Upload JD (PDF or TXT)'}</span>
-              <input id="jd-upload" type="file" style={{display:'none'}} onChange={e => { handleFile(e); setDescError(''); }} accept=".pdf,.txt"/>
-            </label>
-            <button id="post-job-btn" className="hm-btn hm-btn-primary" disabled={loading} onClick={handleCreateJob}>
-              {loading ? 'Publishing...' : 'Post Job'}
-            </button>
-            {saveSuccess && (
-              <div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(52,211,153,0.08)',border:'1px solid rgba(52,211,153,0.2)',borderRadius:10,padding:'10px 14px',fontSize:'0.83rem',color:'#6ee7b7'}}>
-                ✓ Job successfully published to the public board!
-              </div>
-            )}
-            {error && <div className="hm-error">{error}</div>}
-          </div>
-        </div>
-
-        {/* List of active and past postings */}
         {(() => {
           const openJobs = jobs.filter(j => 
             !applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
@@ -304,7 +250,7 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
             applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
           );
           return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+            <>
               {/* Active Postings */}
               <div className="hm-card glass-card">
                 <div className="hm-card-title">
@@ -437,6 +383,139 @@ export const JobProvider: React.FC<Props> = ({ jobs, addJob, onDeleteJob, applic
                   </div>
                 )}
               </div>
+            </>
+          );
+        })()}
+      </div>
+    );
+  }
+
+  // ── PAGE 1: POST A JOB ──
+  if (view === 'post') {
+    return (
+      <div className="hm-grid-provider-post">
+        
+        {/* Form to post a job */}
+        <div className="hm-card glass-card">
+          <div className="hm-card-title">
+            <div className="hm-card-icon"><BriefIco /></div>
+            Post a New Position
+          </div>
+          <div className="flex-col-gap-3">
+            <div>
+              <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '6px' }}>
+                Job Title
+              </label>
+              <input 
+                id="job-title-input" 
+                className={`hm-input${titleError ? ' invalid-input' : ''}`} 
+                placeholder="e.g. Senior React Developer" 
+                value={jobTitle} 
+                onChange={e=>{ setJobTitle(e.target.value); setTitleError(''); }}
+                style={{ width: '100%' }}
+              />
+              {titleError && <p className="auth-field-error-msg">⚠️ {titleError}</p>}
+            </div>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '6px' }}>
+                Job Description Details
+              </label>
+              <textarea 
+                id="job-desc-input" 
+                className={`hm-textarea${descError ? ' invalid-input' : ''}`} 
+                placeholder="Provide clear specifications, required skills, and experience constraints (e.g. 'requires 2+ years of experience')" 
+                rows={8} 
+                value={jobDesc} 
+                onChange={e=>{ setJobDesc(e.target.value); setDescError(''); }}
+                style={{ width: '100%', resize: 'vertical' }}
+              />
+              {descError && <p className="auth-field-error-msg">⚠️ {descError}</p>}
+            </div>
+            <label className="hm-upload-label" htmlFor="jd-upload">
+              <UploadIcon/>
+              <span>{uploadedFile || 'Upload JD (PDF or TXT)'}</span>
+              <input id="jd-upload" type="file" style={{display:'none'}} onChange={e => { handleFile(e); setDescError(''); }} accept=".pdf,.txt"/>
+            </label>
+            <button id="post-job-btn" className="hm-btn hm-btn-primary" disabled={loading} onClick={handleCreateJob}>
+              {loading ? 'Publishing...' : 'Post Job'}
+            </button>
+            {saveSuccess && (
+              <div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(52,211,153,0.08)',border:'1px solid rgba(52,211,153,0.2)',borderRadius:10,padding:'10px 14px',fontSize:'0.83rem',color:'#6ee7b7'}}>
+                ✓ Job successfully published to the public board!
+              </div>
+            )}
+            {error && <div className="hm-error">{error}</div>}
+          </div>
+        </div>
+
+        {/* List of active postings only */}
+        {(() => {
+          const openJobs = jobs.filter(j => 
+            !applications.some(app => app.jobId === j.id && app.status === 'Shortlisted')
+          );
+          return (
+            <div className="hm-card glass-card">
+              <div className="hm-card-title">
+                <div className="hm-card-icon"><BriefIco /></div>
+                Active Postings
+                <span className="hm-count">{openJobs.length}</span>
+              </div>
+              {openJobs.length === 0 ? (
+                <div className="hm-empty">
+                  <div className="hm-empty-icon"><BriefIco /></div>
+                  <p>You have not published any open job listings yet.</p>
+                </div>
+              ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {openJobs.map(j => (
+                    <div 
+                      key={j.id} 
+                      className="hm-match-card"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        background: 'rgba(255,255,255,0.02)',
+                        padding: '16px',
+                        borderRadius: '12px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.94rem' }}>{j.title}</div>
+                        {onDeleteJob && (
+                          <button
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to delete the job opening: "${j.title}"?`)) {
+                                onDeleteJob(j.id);
+                              }
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifycontent: 'center',
+                              borderRadius: '6px',
+                              transition: 'background 0.2s'
+                            }}
+                            title="Delete Job"
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <TrashIco />
+                          </button>
+                        )}
+                      </div>
+                      <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '8px', lineHeight: '1.5', whiteSpace: 'pre-wrap', width: '100%' }}>
+                        {j.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })()}

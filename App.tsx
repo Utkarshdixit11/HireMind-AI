@@ -176,8 +176,8 @@ const AppInner: React.FC = () => {
           setView('board');
         }
       } else if (user.role === 'provider') {
-        if (view === 'board' || view === 'resume' || view === 'matches' || view === 'prep' || view === 'guest-scorer') {
-          setView('post');
+        if (view === 'resume' || view === 'matches' || view === 'prep' || view === 'guest-scorer') {
+          setView('board');
         }
       }
     } else {
@@ -261,7 +261,19 @@ const AppInner: React.FC = () => {
               <div className="hm-dashboard-wrap">
                 {view === 'board' && (
                   <div className="hm-content">
-                    <JobBoard applications={applications} />
+                    {user?.role === 'provider' ? (
+                      <JobProvider 
+                        jobs={jobs} 
+                        addJob={addJob} 
+                        onDeleteJob={deleteJob}
+                        applicants={applicants} 
+                        applications={applications}
+                        onUpdateStatus={handleUpdateApplicationStatus}
+                        view="board"
+                      />
+                    ) : (
+                      <JobBoard applications={applications} />
+                    )}
                   </div>
                 )}
                 {user?.role === 'seeker' && (view === 'resume' || view === 'matches' || view === 'prep') && (
