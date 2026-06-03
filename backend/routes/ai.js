@@ -1,14 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const { GoogleGenAI, Type } = require("@google/genai");
+
+// Try fallback load from parent folder's .env if local development
+try {
+  require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+} catch (e) {
+  // Ignore
+}
 
 // Initialize Gemini Client
 const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 let ai = null;
-if (apiKey) {
+if (apiKey && !apiKey.includes("AIzaSyC0acuXiy03cN5IkLQQr4oc9hbmATcfsrU")) {
   ai = new GoogleGenAI({ apiKey });
 } else {
-  console.warn("⚠️ Warning: No GEMINI_API_KEY or VITE_GEMINI_API_KEY environment variables found on backend server.");
+  console.warn("⚠️ Warning: No valid GEMINI_API_KEY or VITE_GEMINI_API_KEY found on backend server.");
 }
 
 const resumeSchema = {
@@ -93,17 +101,30 @@ const detailedAnalysisSchema = {
 };
 
 router.post('/generate', async (req, res) => {
-  const { type, payload } = req.body;
+  const { type, payload, clientApiKey } = req.body;
 
-  if (!ai) {
-    return res.status(500).json({ error: "Gemini API key is not configured on the backend server." });
+  let activeApiKey = apiKey;
+  // Fallback to clientApiKey if backend is missing key or using leaked key
+  if ((!activeApiKey || activeApiKey.includes("AIzaSyC0acuXiy03cN5IkLQQr4oc9hbmATcfsrU")) && clientApiKey && !clientApiKey.includes("AIzaSyC0acuXiy03cN5IkLQQr4oc9hbmATcfsrU")) {
+    activeApiKey = clientApiKey;
+  }
+
+  if (!activeApiKey || activeApiKey.includes("AIzaSyC0acuXiy03cN5IkLQQr4oc9hbmATcfsrU")) {
+    return res.status(500).json({ error: "Gemini API key is not configured or has been disabled." });
+  }
+
+  let activeAi = null;
+  try {
+    activeAi = new GoogleGenAI({ apiKey: activeApiKey });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to initialize Gemini AI client: " + err.message });
   }
 
   try {
     let result;
     switch (type) {
       case 'extractResumeInfo': {
-        const response = await ai.models.generateContent({
+        const response = await activeAi.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `Analyze the following resume text and extract the key information.\n\nRESUME:\n${payload.resumeText}`,
           config: { responseMimeType: "application/json", responseSchema: resumeSchema },
@@ -112,7 +133,7 @@ router.post('/generate', async (req, res) => {
         break;
       }
       case 'extractJobInfo': {
-        const response = await ai.models.generateContent({
+        const response = await activeAi.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `Analyze the following job description and extract the key requirements.\n\nJOB DESCRIPTION:\n${payload.jobDescriptionText}`,
           config: { responseMimeType: "application/json", responseSchema: jobSchema },
@@ -121,7 +142,7 @@ router.post('/generate', async (req, res) => {
         break;
       }
       case 'analyzeFit': {
-        const response = await ai.models.generateContent({
+        const response = await activeAi.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `Evaluate the candidate's fit for this role.\n\nCANDIDATE:\n- Skills: ${payload.resumeInfo.skills.join(', ')}\n- Experience: ${payload.resumeInfo.experienceSummary}\n- Education: ${payload.resumeInfo.education}\n\nJOB:\n- Required Skills: ${payload.jobInfo.requiredSkills.join(', ')}\n- Required Experience: ${payload.jobInfo.experienceSummary}\n\nProvide a score 0-100 and brief justification.`,
           config: { responseMimeType: "application/json", responseSchema: fitScoreSchema },
@@ -130,7 +151,7 @@ router.post('/generate', async (req, res) => {
         break;
       }
       case 'generateBio': {
-        const response = await ai.models.generateContent({
+        const response = await activeAi.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `Generate a professional 2-3 sentence LinkedIn bio for this candidate.\n\nName: ${payload.resumeInfo.name}\nSkills: ${payload.resumeInfo.skills.join(', ')}\nExperience: ${payload.resumeInfo.experienceSummary}\nEducation: ${payload.resumeInfo.education}`,
         });
@@ -138,7 +159,7 @@ router.post('/generate', async (req, res) => {
         break;
       }
       case 'generateCoverLetter': {
-        const response = await ai.models.generateContent({
+        const response = await activeAi.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `Write a compelling, personalized cover letter for the following applicant applying for the role described below. The letter should be professional, concise (3 paragraphs), and highlight relevant skills. Do NOT include address headers or date — just the body paragraphs.\n\nAPPLICANT:\n- Name: ${payload.resumeInfo.name}\n- Skills: ${payload.resumeInfo.skills.join(', ')}\n- Experience: ${payload.resumeInfo.experienceSummary}\n- Education: ${payload.resumeInfo.education}\n\nJOB TITLE: ${payload.jobTitle}\nJOB DESCRIPTION:\n${payload.jobDescription}`,
         });
@@ -146,7 +167,7 @@ router.post('/generate', async (req, res) => {
         break;
       }
       case 'generateResumeTips': {
-        const response = await ai.models.generateContent({
+        const response = await activeAi.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `Analyze this candidate profile and provide 6-8 specific, actionable resume improvement suggestions. Focus on what's missing or weak. Be direct and practical.\n\nCANDIDATE:\n- Name: ${payload.resumeInfo.name}\n- Skills: ${payload.resumeInfo.skills.join(', ')}\n- Experience: ${payload.resumeInfo.experienceSummary}\n- Education: ${payload.resumeInfo.education}`,
           config: { responseMimeType: "application/json", responseSchema: resumeTipsSchema },
@@ -156,7 +177,7 @@ router.post('/generate', async (req, res) => {
         break;
       }
       case 'generateInterviewPrep': {
-        const response = await ai.models.generateContent({
+        const response = await activeAi.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `Generate 6 realistic interview questions for this candidate preparing for the following job. Mix Behavioral, Technical, and Situational types. Include strong sample answers tailored to the candidate's background.\n\nCANDIDATE:\n- Skills: ${payload.resumeInfo.skills.join(', ')}\n- Experience: ${payload.resumeInfo.experienceSummary}\n\nJOB TITLE: ${payload.jobTitle}\nJOB DESCRIPTION: ${payload.jobDescription}`,
           config: { responseMimeType: "application/json", responseSchema: interviewQASchema },
@@ -166,7 +187,7 @@ router.post('/generate', async (req, res) => {
         break;
       }
       case 'generateInterviewQuestions': {
-        const response = await ai.models.generateContent({
+        const response = await activeAi.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `Generate 8 high-quality interview questions for the role below. Include Technical, Behavioral, Situational, and Culture-fit types. Provide ideal answer guidance for interviewers.\n\nROLE: ${payload.jobTitle}\nREQUIRED SKILLS: ${payload.jobInfo.requiredSkills.join(', ')}\nREQUIRED EXPERIENCE: ${payload.jobInfo.experienceSummary}`,
           config: { responseMimeType: "application/json", responseSchema: interviewQASchema },
@@ -176,7 +197,7 @@ router.post('/generate', async (req, res) => {
         break;
       }
       case 'enhanceJobDescription': {
-        const response = await ai.models.generateContent({
+        const response = await activeAi.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `Rewrite and enhance the following job description into a compelling, structured, and professional listing. Include: a short engaging intro, responsibilities (bullet list), requirements (bullet list), and a brief "Why join us" closing. Keep it under 400 words.\n\nJOB TITLE: ${payload.jobTitle}\nORIGINAL JD:\n${payload.basicJD}`,
         });
@@ -184,7 +205,7 @@ router.post('/generate', async (req, res) => {
         break;
       }
       case 'analyzeDetailedFit': {
-        const response = await ai.models.generateContent({
+        const response = await activeAi.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `Compare the applicant's resume details against the target job role. Highlight what is missing, suggestions to improve their resume to align better, and how they should prepare for the interview.\n\nAPPLICANT:\n- Skills: ${payload.resumeInfo.skills.join(', ')}\n- Experience: ${payload.resumeInfo.experienceSummary}\n- Education: ${payload.resumeInfo.education}\n\nJOB TITLE: ${payload.jobTitle}\nJOB DESCRIPTION:\n${payload.jobDescription}`,
           config: { responseMimeType: "application/json", responseSchema: detailedAnalysisSchema },
@@ -216,7 +237,7 @@ Be extremely encouraging, concise, professional, and practical. Offer actionable
           { role: 'user', parts: [{ text: payload.newMessage }] }
         ];
 
-        const response = await ai.models.generateContent({
+        const response = await activeAi.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: contents,
           config: {

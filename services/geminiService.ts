@@ -20,10 +20,11 @@ const getApiBase = () => {
 
 async function callBackendAI(type: string, payload: any) {
   const apiBase = getApiBase();
+  const clientApiKey = import.meta.env.VITE_GEMINI_API_KEY;
   const res = await fetch(`${apiBase}/ai/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type, payload })
+    body: JSON.stringify({ type, payload, clientApiKey })
   });
   if (!res.ok) {
     const errText = await res.text();
@@ -470,8 +471,25 @@ Let's run a quick mock test! Here is a question tailored to your background:
 
 Take a moment to draft your response, and I will critique it and suggest enhancements!`;
   }
+
+  // 6. CSS & Styling specifics
+  if (query.includes('css') || query.includes('link') || query.includes('stylesheet') || query.includes('bootstrap') || query.includes('tailwind')) {
+    return `### CSS & Styling Guide (Tailwind vs. Bootstrap vs. Vanilla CSS)
+
+To link an external CSS file in your HTML, use the \`<link>\` tag inside the \`<head>\` section:
+
+\`\`\`html
+<link rel="stylesheet" href="styles.css">
+\`\`\`
+
+#### Tailwind CSS vs. Bootstrap:
+* **Tailwind CSS:** Utility-first CSS framework. You write classes directly on elements (e.g., \`flex p-4 bg-blue-500\`). It gives you complete design freedom and results in small build sizes.
+* **Bootstrap:** Component-based framework. It comes with pre-designed components (buttons, cards, navbars). It's very fast to prototype, but can look generic and is harder to customize deeply.
+
+*Would you like help styling a specific component using Tailwind or Bootstrap?*`;
+  }
   
-  // 6. Generic Default
+  // 7. Generic Default
   return `### **Prep Coach Reference Guide**
 
 For a **${jobTitle}** role, here is what you should focus on based on your background:
