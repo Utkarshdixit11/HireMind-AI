@@ -169,7 +169,7 @@ const AppInner: React.FC = () => {
   React.useEffect(() => {
     if (isAuthenticated && user) {
       if (user.role === 'guest') {
-        if (view !== 'guest-scorer' && view !== 'about') {
+        if (view !== 'guest-scorer' && view !== 'about' && view !== 'landing') {
           setView('guest-scorer');
         }
       } else if (user.role === 'seeker') {
