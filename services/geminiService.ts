@@ -1,88 +1,162 @@
-
-import { GoogleGenAI, Type } from "@google/genai";
 import type { ExtractedJobInfo, ExtractedResumeInfo, ResumeTip, InterviewQA } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY as string });
+// ── API Routing Helpers ──────────────────────────────────────────────────────
 
-const resumeSchema = {
-  type: Type.OBJECT,
-  properties: {
-    name: { type: Type.STRING, description: "The full name of the candidate." },
-    contact: { type: Type.STRING, description: "The primary contact information (email or phone)." },
-    skills: { type: Type.ARRAY, items: { type: Type.STRING }, description: "A list of key technical and soft skills." },
-    experienceSummary: { type: Type.STRING, description: "A 2-3 sentence summary of the candidate's professional work experience." },
-    education: { type: Type.STRING, description: "A summary of the candidate's educational background, including degrees and institutions." },
-  },
-  required: ["name", "skills", "experienceSummary", "education"],
+const getApiBase = () => {
+  let base = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:5000/api')
+    ? import.meta.env.VITE_API_URL
+    : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5000/api'
+      : `${window.location.origin}/api`);
+
+  if (base.endsWith('/')) {
+    base = base.slice(0, -1);
+  }
+  if (!base.endsWith('/api')) {
+    base = `${base}/api`;
+  }
+  return base;
 };
 
-const jobSchema = {
-  type: Type.OBJECT,
-  properties: {
-    requiredSkills: { type: Type.ARRAY, items: { type: Type.STRING }, description: "A list of essential skills required for the job." },
-    experienceSummary: { type: Type.STRING, description: "A summary of the required years and type of experience." },
-  },
-  required: ["requiredSkills", "experienceSummary"],
+async function callBackendAI(type: string, payload: any) {
+  const apiBase = getApiBase();
+  const res = await fetch(`${apiBase}/ai/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, payload })
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`AI generation failed: ${errText || res.statusText}`);
+  }
+  const data = await res.json();
+  return data.result;
+}
+
+// ── Exported AI Service Functions ───────────────────────────────────────────
+
+export const extractResumeInfo = async (resumeText: string): Promise<ExtractedResumeInfo> => {
+  try {
+    return await callBackendAI('extractResumeInfo', { resumeText });
+  } catch (err) {
+    return fallbackExtractResumeInfo(resumeText);
+  }
 };
 
-const fitScoreSchema = {
-  type: Type.OBJECT,
-  properties: {
-    score: { type: Type.NUMBER, description: "A score from 0 to 100 indicating the match quality." },
-    justification: { type: Type.STRING, description: "A brief, one-sentence justification for the score." },
-  },
-  required: ["score", "justification"],
+export const extractJobInfo = async (jobDescriptionText: string): Promise<ExtractedJobInfo> => {
+  try {
+    return await callBackendAI('extractJobInfo', { jobDescriptionText });
+  } catch (err) {
+    return fallbackExtractJobInfo(jobDescriptionText);
+  }
 };
 
-const resumeTipsSchema = {
-  type: Type.OBJECT,
-  properties: {
-    tips: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          category: { type: Type.STRING, description: "Category of improvement e.g. Skills, Experience, Format, Keywords, Summary" },
-          tip: { type: Type.STRING, description: "A specific, actionable improvement suggestion." },
-          priority: { type: Type.STRING, description: "Priority level: high, medium, or low" },
-        },
-        required: ["category", "tip", "priority"],
-      },
-      description: "List of actionable resume improvement tips",
-    },
-  },
-  required: ["tips"],
+export const analyzeFit = async (resumeInfo: ExtractedResumeInfo, jobInfo: ExtractedJobInfo): Promise<{ score: number; justification: string }> => {
+  try {
+    return await callBackendAI('analyzeFit', { resumeInfo, jobInfo });
+  } catch (err) {
+    return fallbackAnalyzeFit(resumeInfo, jobInfo);
+  }
 };
 
-const interviewQASchema = {
-  type: Type.OBJECT,
-  properties: {
-    questions: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          question: { type: Type.STRING, description: "The interview question" },
-          sampleAnswer: { type: Type.STRING, description: "A strong sample answer for this question" },
-          type: { type: Type.STRING, description: "Type of question: Behavioral, Technical, Situational, General" },
-        },
-        required: ["question", "sampleAnswer", "type"],
-      },
-      description: "List of interview questions with sample answers",
-    },
-  },
-  required: ["questions"],
+export const generateBio = async (resumeInfo: ExtractedResumeInfo): Promise<string> => {
+  try {
+    return await callBackendAI('generateBio', { resumeInfo });
+  } catch (err) {
+    return `Experienced software professional specializing in ${resumeInfo.skills.slice(0, 4).join(', ')}. Passionate about developing scalable, high-performance web applications and building seamless user interfaces.`;
+  }
 };
 
-const detailedAnalysisSchema = {
-  type: Type.OBJECT,
-  properties: {
-    score: { type: Type.NUMBER, description: "Match percentage between 0 and 100" },
-    missingThings: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Key requirements or skills missing from the candidate's resume" },
-    improvements: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Actionable tips to improve the resume for this specific role" },
-    prepGuide: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific steps and focus areas on how to prepare for this job's interview" }
-  },
-  required: ["score", "missingThings", "improvements", "prepGuide"]
+export const generateCoverLetter = async (resumeInfo: ExtractedResumeInfo, jobTitle: string, jobDescription: string): Promise<string> => {
+  try {
+    return await callBackendAI('generateCoverLetter', { resumeInfo, jobTitle, jobDescription });
+  } catch (err) {
+    return `Dear Hiring Manager,\n\nI am writing to express my strong interest in the ${jobTitle} position. With my solid background in ${resumeInfo.skills.slice(0, 4).join(', ')}, I am confident that my technical skills and experience align perfectly with the requirements of this role.\n\nOver the course of my career, I have developed a strong skill set in software development: ${resumeInfo.experienceSummary}. I am passionate about engineering clean, maintainable, and high-performance solutions.\n\nThank you for your time and consideration. I welcome the opportunity to discuss how my qualifications can add value to your engineering team.\n\nSincerely,\n${resumeInfo.name}`;
+  }
+};
+
+export const generateResumeTips = async (resumeInfo: ExtractedResumeInfo): Promise<ResumeTip[]> => {
+  try {
+    return await callBackendAI('generateResumeTips', { resumeInfo });
+  } catch (err) {
+    return [
+      { category: "Skills", tip: `Highlight your proficiency in core technologies like ${resumeInfo.skills.slice(0, 3).join(', ')} prominently at the top.`, priority: "high" },
+      { category: "Experience", tip: "Quantify your achievements in each role using concrete metrics, numbers, and key project outcomes.", priority: "high" },
+      { category: "Format", tip: "Ensure clear visual hierarchy, using bold text for job titles and bullet points for readability.", priority: "medium" },
+      { category: "Summary", tip: "Refine your profile summary to match the specific terms used in modern tech listings.", priority: "medium" }
+    ];
+  }
+};
+
+export const generateInterviewPrep = async (resumeInfo: ExtractedResumeInfo, jobTitle: string, jobDescription: string): Promise<InterviewQA[]> => {
+  try {
+    return await callBackendAI('generateInterviewPrep', { resumeInfo, jobTitle, jobDescription });
+  } catch (err) {
+    return [
+      { question: `Can you walk me through a technical challenge you faced while implementing ${resumeInfo.skills[0] || 'software components'}?`, sampleAnswer: "In a recent project, we faced performance bottlenecks during load times. I addressed this by profiling components, identifying unnecessary renders, and optimizing resource queries to reduce latency by 35%.", type: "Technical" },
+      { question: "How do you handle changing product requirements or tight deadlines?", sampleAnswer: "I focus on open communication with product managers, break the work down into prioritised items, and ensure that code quality and core requirements are met first.", type: "Behavioral" },
+      { question: `Why does the ${jobTitle} role at our company align with your career goals?`, sampleAnswer: "This role allows me to apply my skills in engineering while growing in technical architecture and contributing to product scalability.", type: "General" }
+    ];
+  }
+};
+
+export const generateInterviewQuestions = async (jobTitle: string, jobInfo: ExtractedJobInfo): Promise<InterviewQA[]> => {
+  try {
+    return await callBackendAI('generateInterviewQuestions', { jobTitle, jobInfo });
+  } catch (err) {
+    return [
+      { question: `Explain the core concepts and design patterns of ${jobInfo.requiredSkills[0] || 'software architecture'}.`, sampleAnswer: "Look for candidates explaining MVC, design patterns, separation of concerns, and framework-specific optimization techniques.", type: "Technical" },
+      { question: "How do you ensure code quality, test coverage, and documentation consistency in collaborative teams?", sampleAnswer: "Look for mentions of code reviews, CI/CD automated linting and tests, and writing clear inline comments/specs.", type: "Behavioral" }
+    ];
+  }
+};
+
+export const enhanceJobDescription = async (basicJD: string, jobTitle: string): Promise<string> => {
+  try {
+    return await callBackendAI('enhanceJobDescription', { basicJD, jobTitle });
+  } catch (err) {
+    return `### Job Role: ${jobTitle}\n\nWe are looking for a skilled ${jobTitle} to join our growing team. You will be responsible for creating robust applications and collaborating on system architecture.\n\n### Responsibilities:\n- Design, develop, and maintain clean, scalable code.\n- Collaborate with product designers and backend developers.\n- Build responsive frontend features and integrate REST APIs.\n\n### Requirements:\n- Proficient in technical stack needed for the role.\n- Solid problem-solving and communication skills.\n- Experience working in agile development environments.\n\n### Why Join Us:\nJoin a remote-first, inclusive engineering team with flexible working hours, health benefits, and learning allowances.`;
+  }
+};
+
+export interface DetailedAnalysis {
+  score: number;
+  missingThings: string[];
+  improvements: string[];
+  prepGuide: string[];
+}
+
+export const analyzeDetailedFit = async (resumeInfo: ExtractedResumeInfo, jobTitle: string, jobDescription: string): Promise<DetailedAnalysis> => {
+  try {
+    return await callBackendAI('analyzeDetailedFit', { resumeInfo, jobTitle, jobDescription });
+  } catch (err) {
+    return fallbackAnalyzeDetailedFit(resumeInfo, jobTitle, jobDescription);
+  }
+};
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+}
+
+export const chatPrepCoach = async (
+  resumeInfo: ExtractedResumeInfo,
+  jobTitle: string,
+  jobDescription: string,
+  chatHistory: ChatMessage[],
+  newMessage: string
+): Promise<string> => {
+  try {
+    return await callBackendAI('chatPrepCoach', { resumeInfo, jobTitle, jobDescription, chatHistory, newMessage });
+  } catch (err: any) {
+    console.error("Prep Coach Chat Error:", err);
+    const errStr = JSON.stringify(err) + " " + String(err);
+    let errorSuffix = "";
+    if (errStr.toLowerCase().includes("leaked") || errStr.toLowerCase().includes("api key") || errStr.toLowerCase().includes("permission_denied") || errStr.toLowerCase().includes("not configured")) {
+      errorSuffix = "\n\n⚠️ **System Note:** The Gemini API Key is not configured correctly or has been disabled. Please ensure VITE_GEMINI_API_KEY or GEMINI_API_KEY is configured on your backend hosting platform (e.g. Render).";
+    }
+    return fallbackChatPrepCoach(resumeInfo, jobTitle, newMessage) + errorSuffix;
+  }
 };
 
 // ── Fallback Helpers ────────────────────────────────────────────────────────
@@ -274,215 +348,6 @@ const fallbackAnalyzeDetailedFit = (resumeInfo: ExtractedResumeInfo, jobTitle: s
     improvements,
     prepGuide
   };
-};
-
-// ── Existing functions ──────────────────────────────────────────────────────
-
-export const extractResumeInfo = async (resumeText: string): Promise<ExtractedResumeInfo> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Analyze the following resume text and extract the key information.\n\nRESUME:\n${resumeText}`,
-      config: { responseMimeType: "application/json", responseSchema: resumeSchema },
-    });
-    return JSON.parse(response.text) as ExtractedResumeInfo;
-  } catch (err) {
-    return fallbackExtractResumeInfo(resumeText);
-  }
-};
-
-export const extractJobInfo = async (jobDescriptionText: string): Promise<ExtractedJobInfo> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Analyze the following job description and extract the key requirements.\n\nJOB DESCRIPTION:\n${jobDescriptionText}`,
-      config: { responseMimeType: "application/json", responseSchema: jobSchema },
-    });
-    return JSON.parse(response.text) as ExtractedJobInfo;
-  } catch (err) {
-    return fallbackExtractJobInfo(jobDescriptionText);
-  }
-};
-
-export const analyzeFit = async (resumeInfo: ExtractedResumeInfo, jobInfo: ExtractedJobInfo): Promise<{ score: number; justification: string }> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Evaluate the candidate's fit for this role.\n\nCANDIDATE:\n- Skills: ${resumeInfo.skills.join(', ')}\n- Experience: ${resumeInfo.experienceSummary}\n\nJOB:\n- Required Skills: ${jobInfo.requiredSkills.join(', ')}\n- Required Experience: ${jobInfo.experienceSummary}\n\nProvide a score 0-100 and brief justification.`,
-      config: { responseMimeType: "application/json", responseSchema: fitScoreSchema },
-    });
-    return JSON.parse(response.text) as { score: number; justification: string };
-  } catch (err) {
-    return fallbackAnalyzeFit(resumeInfo, jobInfo);
-  }
-};
-
-export const generateBio = async (resumeInfo: ExtractedResumeInfo): Promise<string> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Generate a professional 2-3 sentence LinkedIn bio for this candidate.\n\nName: ${resumeInfo.name}\nSkills: ${resumeInfo.skills.join(', ')}\nExperience: ${resumeInfo.experienceSummary}\nEducation: ${resumeInfo.education}`,
-    });
-    return response.text;
-  } catch (err) {
-    return `Experienced software professional specializing in ${resumeInfo.skills.slice(0, 4).join(', ')}. Passionate about developing scalable, high-performance web applications and building seamless user interfaces.`;
-  }
-};
-
-// ── New AI features ─────────────────────────────────────────────────────────
-
-export const generateCoverLetter = async (resumeInfo: ExtractedResumeInfo, jobTitle: string, jobDescription: string): Promise<string> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Write a compelling, personalized cover letter for the following applicant applying for the role described below. The letter should be professional, concise (3 paragraphs), and highlight relevant skills. Do NOT include address headers or date — just the body paragraphs.\n\nAPPLICANT:\n- Name: ${resumeInfo.name}\n- Skills: ${resumeInfo.skills.join(', ')}\n- Experience: ${resumeInfo.experienceSummary}\n- Education: ${resumeInfo.education}\n\nJOB TITLE: ${jobTitle}\nJOB DESCRIPTION:\n${jobDescription}`,
-    });
-    return response.text;
-  } catch (err) {
-    return `Dear Hiring Manager,\n\nI am writing to express my strong interest in the ${jobTitle} position. With my solid background in ${resumeInfo.skills.slice(0, 4).join(', ')}, I am confident that my technical skills and experience align perfectly with the requirements of this role.\n\nOver the course of my career, I have developed a strong skill set in software development: ${resumeInfo.experienceSummary}. I am passionate about engineering clean, maintainable, and high-performance solutions.\n\nThank you for your time and consideration. I welcome the opportunity to discuss how my qualifications can add value to your engineering team.\n\nSincerely,\n${resumeInfo.name}`;
-  }
-};
-
-export const generateResumeTips = async (resumeInfo: ExtractedResumeInfo): Promise<ResumeTip[]> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Analyze this candidate profile and provide 6-8 specific, actionable resume improvement suggestions. Focus on what's missing or weak. Be direct and practical.\n\nCANDIDATE:\n- Name: ${resumeInfo.name}\n- Skills: ${resumeInfo.skills.join(', ')}\n- Experience: ${resumeInfo.experienceSummary}\n- Education: ${resumeInfo.education}`,
-      config: { responseMimeType: "application/json", responseSchema: resumeTipsSchema },
-    });
-    const result = JSON.parse(response.text) as { tips: ResumeTip[] };
-    return result.tips;
-  } catch (err) {
-    return [
-      { category: "Skills", tip: `Highlight your proficiency in core technologies like ${resumeInfo.skills.slice(0, 3).join(', ')} prominently at the top.`, priority: "high" },
-      { category: "Experience", tip: "Quantify your achievements in each role using concrete metrics, numbers, and key project outcomes.", priority: "high" },
-      { category: "Format", tip: "Ensure clear visual hierarchy, using bold text for job titles and bullet points for readability.", priority: "medium" },
-      { category: "Summary", tip: "Refine your profile summary to match the specific terms used in modern tech listings.", priority: "medium" }
-    ];
-  }
-};
-
-export const generateInterviewPrep = async (resumeInfo: ExtractedResumeInfo, jobTitle: string, jobDescription: string): Promise<InterviewQA[]> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Generate 6 realistic interview questions for this candidate preparing for the following job. Mix Behavioral, Technical, and Situational types. Include strong sample answers tailored to the candidate's background.\n\nCANDIDATE:\n- Skills: ${resumeInfo.skills.join(', ')}\n- Experience: ${resumeInfo.experienceSummary}\n\nJOB TITLE: ${jobTitle}\nJOB DESCRIPTION: ${jobDescription}`,
-      config: { responseMimeType: "application/json", responseSchema: interviewQASchema },
-    });
-    const result = JSON.parse(response.text) as { questions: InterviewQA[] };
-    return result.questions;
-  } catch (err) {
-    return [
-      { question: `Can you walk me through a technical challenge you faced while implementing ${resumeInfo.skills[0] || 'software components'}?`, sampleAnswer: "In a recent project, we faced performance bottlenecks during load times. I addressed this by profiling components, identifying unnecessary renders, and optimizing resource queries to reduce latency by 35%.", type: "Technical" },
-      { question: "How do you handle changing product requirements or tight deadlines?", sampleAnswer: "I focus on open communication with product managers, break the work down into prioritised items, and ensure that core functional paths are developed and tested first.", type: "Behavioral" },
-      { question: `Why does the ${jobTitle} role at our company align with your career goals?`, sampleAnswer: "This role allows me to apply my skills in engineering while growing in technical architecture and contributing to product scalability.", type: "General" }
-    ];
-  }
-};
-
-export const generateInterviewQuestions = async (jobTitle: string, jobInfo: ExtractedJobInfo): Promise<InterviewQA[]> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Generate 8 high-quality interview questions for the role below. Include Technical, Behavioral, Situational, and Culture-fit types. Provide ideal answer guidance for interviewers.\n\nROLE: ${jobTitle}\nREQUIRED SKILLS: ${jobInfo.requiredSkills.join(', ')}\nREQUIRED EXPERIENCE: ${jobInfo.experienceSummary}`,
-      config: { responseMimeType: "application/json", responseSchema: interviewQASchema },
-    });
-    const result = JSON.parse(response.text) as { questions: InterviewQA[] };
-    return result.questions;
-  } catch (err) {
-    return [
-      { question: `Explain the core concepts and design patterns of ${jobInfo.requiredSkills[0] || 'software architecture'}.`, sampleAnswer: "Look for candidates explaining MVC, design patterns, separation of concerns, and framework-specific optimization techniques.", type: "Technical" },
-      { question: "How do you ensure code quality, test coverage, and documentation consistency in collaborative teams?", sampleAnswer: "Look for mentions of code reviews, CI/CD automated linting and tests, and writing clear inline comments/specs.", type: "Behavioral" }
-    ];
-  }
-};
-
-export const enhanceJobDescription = async (basicJD: string, jobTitle: string): Promise<string> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Rewrite and enhance the following job description into a compelling, structured, and professional listing. Include: a short engaging intro, responsibilities (bullet list), requirements (bullet list), and a brief "Why join us" closing. Keep it under 400 words.\n\nJOB TITLE: ${jobTitle}\nORIGINAL JD:\n${basicJD}`,
-    });
-    return response.text;
-  } catch (err) {
-    return `### Job Role: ${jobTitle}\n\nWe are looking for a skilled ${jobTitle} to join our growing team. You will be responsible for creating robust applications and collaborating on system architecture.\n\n### Responsibilities:\n- Design, develop, and maintain clean, scalable code.\n- Collaborate with product designers and backend developers.\n- Build responsive frontend features and integrate REST APIs.\n\n### Requirements:\n- Proficient in technical stack needed for the role.\n- Solid problem-solving and communication skills.\n- Experience working in agile development environments.\n\n### Why Join Us:\nJoin a remote-first, inclusive engineering team with flexible working hours, health benefits, and learning allowances.`;
-  }
-};
-
-export interface DetailedAnalysis {
-  score: number;
-  missingThings: string[];
-  improvements: string[];
-  prepGuide: string[];
-}
-
-export const analyzeDetailedFit = async (resumeInfo: ExtractedResumeInfo, jobTitle: string, jobDescription: string): Promise<DetailedAnalysis> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Compare the applicant's resume details against the target job role. Highlight what is missing, suggestions to improve their resume to align better, and how they should prepare for the interview.\n\nAPPLICANT:\n- Skills: ${resumeInfo.skills.join(', ')}\n- Experience: ${resumeInfo.experienceSummary}\n- Education: ${resumeInfo.education}\n\nJOB TITLE: ${jobTitle}\nJOB DESCRIPTION:\n${jobDescription}`,
-      config: { responseMimeType: "application/json", responseSchema: detailedAnalysisSchema },
-    });
-    return JSON.parse(response.text) as DetailedAnalysis;
-  } catch (err) {
-    return fallbackAnalyzeDetailedFit(resumeInfo, jobTitle, jobDescription);
-  }
-};
-
-export interface ChatMessage {
-  role: 'user' | 'model';
-  text: string;
-}
-
-export const chatPrepCoach = async (
-  resumeInfo: ExtractedResumeInfo,
-  jobTitle: string,
-  jobDescription: string,
-  chatHistory: ChatMessage[],
-  newMessage: string
-): Promise<string> => {
-  try {
-    const systemPrompt = `You are a helpful AI Prep Coach for HireMind. You are helping the applicant prepare for an interview for the position of "${jobTitle}".
-    
-APPLICANT RESUME DETAILS:
-- Name: ${resumeInfo.name}
-- Skills: ${resumeInfo.skills.join(', ')}
-- Experience: ${resumeInfo.experienceSummary}
-- Education: ${resumeInfo.education}
-
-JOB DETAILS:
-- Title: ${jobTitle}
-- Description: ${jobDescription}
-
-Be extremely encouraging, concise, professional, and practical. Offer actionable interview advice, answer technical questions, explain concepts, and critique answers they offer. Always ground your advice in the reference resume and job details.`;
-
-    const contents = [
-      { role: 'user', parts: [{ text: "Hello! I need help preparing for the interview." }] },
-      ...chatHistory.map(msg => ({
-        role: msg.role,
-        parts: [{ text: msg.text }]
-      })),
-      { role: 'user', parts: [{ text: newMessage }] }
-    ];
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: contents as any,
-      config: {
-        systemInstruction: systemPrompt
-      }
-    });
-    
-    return response.text || "I apologize, but I received an empty response. Please try again.";
-  } catch (err) {
-    console.error("Prep Coach Chat Error:", err);
-    const errStr = JSON.stringify(err) + " " + String(err);
-    let errorSuffix = "";
-    if (errStr.toLowerCase().includes("leaked") || errStr.toLowerCase().includes("api key") || errStr.toLowerCase().includes("permission_denied")) {
-      errorSuffix = "\n\n⚠️ **System Note:** The configured Gemini API Key in the `.env` file has been reported as leaked/disabled by Google (403 Permission Denied). Please generate a new key and update the `VITE_GEMINI_API_KEY` variable in your `.env` file.";
-    }
-    return fallbackChatPrepCoach(resumeInfo, jobTitle, newMessage) + errorSuffix;
-  }
 };
 
 export const fallbackChatPrepCoach = (

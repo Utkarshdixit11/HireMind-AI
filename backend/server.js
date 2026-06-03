@@ -9,6 +9,7 @@ const passport = require('./config/passport');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/jobs');
 const userRoutes = require('./routes/users');
+const aiRoutes = require('./routes/ai');
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.use(passport.session());
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/ai', aiRoutes);
 
 // ── Serve frontend static files ──
 const path = require('path');
