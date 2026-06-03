@@ -79,7 +79,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialMode = 'lo
   // Lock body scroll on mount
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    document.documentElement.style.overflow = 'hidden';
+    return () => { 
+      document.body.style.overflow = ''; 
+      document.documentElement.style.overflow = ''; 
+    };
   }, []);
 
   // Alert Auto-dismiss after 4 seconds
@@ -246,7 +250,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialMode = 'lo
         </div>
 
         {/* Right Side: Fields & Signup/Login */}
-        <div className="auth-left-panel">
+        <div className="auth-left-panel hide-scrollbar">
           <button className="auth-close-fullscreen" onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18"/>
