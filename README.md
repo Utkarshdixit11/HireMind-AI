@@ -63,3 +63,6 @@ Post new job openings, manage active listings, review candidate rankings, and vi
 ![Create Job Postings](./Screenshot/PostJob_recruiter.png)
 ![Detailed Fit Analysis](./Screenshot/Detailed_analysis.png)
 ![Candidate Tracker Pipeline](./Screenshot/Candidate_tracker.png)
+
+## 📄 License
+This project is licensed under the MIT License — see the [LICENSE](./LICENSE) file for details.
