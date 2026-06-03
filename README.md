@@ -43,6 +43,67 @@
 
 ---
 
+## ⚙️ Getting Started & Setup
+
+### 1. Prerequisites
+Ensure you have the following installed:
+* **Node.js** (v18.x or later)
+* **npm** (v9.x or later)
+* **MongoDB** (Local instance or MongoDB Atlas Connection URI)
+
+### 2. Installation
+Clone the repository and install dependencies for both the frontend and backend:
+
+```bash
+# Clone the repository
+git clone https://github.com/Utkarshdixit11/HireMind-AI.git
+cd HireMind-AI
+
+# Install frontend dependencies
+npm install
+
+# Install backend dependencies
+cd backend
+npm install
+```
+
+### 3. Environment Setup (.env)
+Create a `.env` file in the `backend` directory and add the following configuration:
+
+```env
+PORT=5000
+MONGO_URI=your_mongodb_atlas_connection_uri
+JWT_SECRET=your_jwt_secret_key
+SESSION_SECRET=your_express_session_secret_key
+
+# Google OAuth (Passport) Credentials
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+CLIENT_URL=http://localhost:5173
+
+# Gemini AI Engine credentials
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+### 4. Running the Application
+
+#### Start the Backend Server:
+```bash
+cd backend
+npm run dev
+# Server will run on http://localhost:5000
+```
+
+#### Start the Frontend Client:
+```bash
+# Navigate back to root
+cd ..
+npm run dev
+# Client will run on http://localhost:5173
+```
+
+---
+
 ## 📸 Application Showcase
 
 ### 1. Home Dashboard & Authentication
