@@ -476,7 +476,12 @@ Be extremely encouraging, concise, professional, and practical. Offer actionable
     return response.text || "I apologize, but I received an empty response. Please try again.";
   } catch (err) {
     console.error("Prep Coach Chat Error:", err);
-    return fallbackChatPrepCoach(resumeInfo, jobTitle, newMessage);
+    const errStr = JSON.stringify(err) + " " + String(err);
+    let errorSuffix = "";
+    if (errStr.toLowerCase().includes("leaked") || errStr.toLowerCase().includes("api key") || errStr.toLowerCase().includes("permission_denied")) {
+      errorSuffix = "\n\n⚠️ **System Note:** The configured Gemini API Key in the `.env` file has been reported as leaked/disabled by Google (403 Permission Denied). Please generate a new key and update the `VITE_GEMINI_API_KEY` variable in your `.env` file.";
+    }
+    return fallbackChatPrepCoach(resumeInfo, jobTitle, newMessage) + errorSuffix;
   }
 };
 
@@ -487,29 +492,128 @@ export const fallbackChatPrepCoach = (
 ): string => {
   const query = newMessage.toLowerCase();
   
+  // 1. Printing statements / Basic Syntax / console.log
+  if (query.includes('print') || query.includes('printing') || query.includes('console.log') || query.includes('syntax')) {
+    return `### Basic Syntax & Printing Statements (JavaScript / Node.js)
+
+Since you are preparing for a **${jobTitle}** role, JavaScript is key. Here is the basic syntax to print output:
+
+1. **Standard Output (console.log):**
+   \`\`\`javascript
+   console.log("Hello, World!");
+   \`\`\`
+
+2. **Formatted / Table Output (console.table):**
+   Perfect for printing arrays or objects cleanly during debugging:
+   \`\`\`javascript
+   const user = { name: "${resumeInfo.name || 'Candidate'}", role: "${jobTitle}" };
+   console.table(user);
+   \`\`\`
+
+3. **Warnings & Errors:**
+   \`\`\`javascript
+   console.warn("This is a warning!");
+   console.error("This is an error!");
+   \`\`\`
+
+*Would you like to try writing a function that prints a specific pattern or output?*`;
+  }
+
+  // 2. React specifics
+  if (query.includes('react') || query.includes('hooks') || query.includes('useeffect') || query.includes('usestate')) {
+    return `### React.js Interview Focus for **${jobTitle}**
+
+Based on your resume matches, here are core React.js concepts you must know:
+
+1. **State vs. Props:**
+   * **State** is internal data managed within the component itself (e.g. \`const [val, setVal] = useState(init)\`).
+   * **Props** are read-only properties passed down from parent to child components.
+
+2. **React Lifecycle & Hooks:**
+   * \`useState\`: Manages local reactive state variables.
+   * \`useEffect\`: Performs side effects (API calls, subscriptions, DOM manipulation) in functional components.
+   * \`useMemo\`: Memoizes expensive computations so they don't re-run on every render.
+   * \`useCallback\`: Memoizes function instances to prevent unnecessary re-rendering of child components.
+
+3. **Virtual DOM:**
+   React keeps a lightweight representation of the real DOM in memory. When state changes, it diffs the virtual DOM with a snapshot, and updates only the changed elements in the real DOM (a process called *Reconciliation*).`;
+  }
+
+  // 3. Backend (Node, Express, APIs, MERN)
+  if (query.includes('node') || query.includes('express') || query.includes('api') || query.includes('backend') || query.includes('mern')) {
+    return `### Backend Architecture (Node.js & Express) for **${jobTitle}**
+
+As a MERN Stack developer, here is a quick overview of key backend concepts:
+
+1. **What is Node.js?**
+   Node.js is an open-source, cross-platform JavaScript runtime built on Chrome's V8 engine. It uses an **Event-Driven, Non-blocking I/O model** which makes it lightweight and efficient for real-time applications.
+
+2. **Creating a basic Express Server:**
+   \`\`\`javascript
+   const express = require('express');
+   const app = express();
+   
+   app.use(express.json()); // Middleware to parse JSON request bodies
+   
+   app.get('/api/greeting', (req, res) => {
+     res.json({ message: "Hello from HireMind AI Prep Coach!" });
+   });
+   
+   app.listen(5000, () => console.log('Server running on port 5000'));
+   \`\`\`
+
+3. **Middlewares:**
+   Middlewares are functions that have access to the request (\`req\`), response (\`res\`), and next middleware function (\`next\`) in the request-response cycle. They are commonly used for authentication, logging, and error handling.`;
+  }
+
+  // 4. Database (MongoDB, SQL)
+  if (query.includes('mongo') || query.includes('db') || query.includes('database') || query.includes('mongoose')) {
+    return `### Database Fundamentals (MongoDB & Mongoose)
+
+Since you are matching for the **${jobTitle}** position, MongoDB is a critical skill.
+
+1. **Document-Oriented Database:**
+   MongoDB stores data in flexible, JSON-like documents. A table is called a **Collection**, and a row is a **Document**.
+
+2. **Defining a schema in Mongoose:**
+   \`\`\`javascript
+   const mongoose = require('mongoose');
+   
+   const UserSchema = new mongoose.Schema({
+     name: { type: String, required: true },
+     skills: [String],
+     createdAt: { type: Date, default: Date.now }
+   });
+   
+   module.exports = mongoose.model('User', UserSchema);
+   \`\`\`
+
+3. **Common Mongoose Operations:**
+   * **Create:** \`await User.create({ name: 'Utkarsh', skills: ['React'] })\`
+   * **Read:** \`await User.find({ skills: 'React' })\`
+   * **Update:** \`await User.updateOne({ name: 'Utkarsh' }, { $push: { skills: 'Node.js' } })\`
+   * **Delete:** \`await User.deleteOne({ name: 'Utkarsh' })\``;
+  }
+
+  // 5. Mock Interview requests
   if (query.includes('question') || query.includes('test') || query.includes('mock') || query.includes('ask') || query.includes('practice')) {
-    return `Sure! Let's do a mock interview question for the **${jobTitle}** role.
+    return `### Mock Interview Session for **${jobTitle}**
 
-Here is a question to get us started:
-*"Can you explain how you would design a scalable feature matching your skill in ${resumeInfo.skills[0] || 'software engineering'}? What trade-offs would you consider?"*
+Let's run a quick mock test! Here is a question tailored to your background:
 
-Take a moment to draft your response, and I will give you feedback!`;
+*"Can you explain how you would design a scalable feature matching your skill in ${resumeInfo.skills[0] || 'software engineering'}? What key performance trade-offs or optimizations would you consider?"*
+
+Take a moment to draft your response, and I will critique it and suggest enhancements!`;
   }
   
-  if (query.includes('html') || query.includes('css') || query.includes('redux') || query.includes('react') || query.includes('node') || query.includes('js') || query.includes('javascript') || query.includes('ts') || query.includes('typescript')) {
-    return `That's a key area for a **${jobTitle}**. 
+  // 6. Generic Default
+  return `### **Prep Coach Reference Guide**
 
-Based on your resume, highlighting your experience with **${resumeInfo.skills.slice(0, 3).join(', ') || 'modern libraries'}** will help you stand out. For technical questions on this, make sure to:
-1. Explain the core architecture/concept clearly.
-2. Share a real-world scenario where you resolved a bottleneck or implemented a major feature using it.
-3. Be prepared to discuss optimization techniques (like memoization or store organization).`;
-  }
+For a **${jobTitle}** role, here is what you should focus on based on your background:
 
-  return `For a **${jobTitle}** role, here is what you should focus on based on your background:
-
-1. **Leverage your strengths:** Emphasize your background in **${resumeInfo.skills.slice(0, 3).join(', ') || 'software development'}**.
+1. **Leverage your strengths:** Emphasize your background in **${resumeInfo.skills.slice(0, 4).join(', ') || 'software development'}**.
 2. **Be ready for key questions:** Be prepared to talk about design patterns, APIs, and testing.
 3. **Ask great questions:** Show interest in the team's agile process, deployment cycle, and code review standards.
 
-What specific technical topic or interview stage would you like to prepare for next?`;
+*What specific technical topic or interview stage (e.g. React hooks, Express middlewares, MongoDB queries) would you like to prepare for next?*`;
 };
