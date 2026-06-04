@@ -79,24 +79,13 @@ const AppInner: React.FC = () => {
   const addJob = (job: Job) => setJobs(prev => [job, ...prev]);
 
   const deleteJob = async (jobId: string) => {
-    const targetJob = jobs.find(j => j.id === jobId);
-    const isAlreadyPast = targetJob && (
-      targetJob.status === 'closed' || 
-      applications.some(app => app.jobId === jobId && app.status === 'Shortlisted')
-    );
-
-    if (isAlreadyPast) {
-      // Permanently remove from state
-      setJobs(prev => prev.filter(j => j.id !== jobId));
-    } else {
-      // Mark as closed locally
-      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'closed' } : j));
-    }
+    // Permanently remove from state
+    setJobs(prev => prev.filter(j => j.id !== jobId));
     
     // Call server API
     try {
       if (token) {
-        const url = `${API_BASE}/jobs/${jobId}${isAlreadyPast ? '?permanent=true' : ''}`;
+        const url = `${API_BASE}/jobs/${jobId}`;
         await fetch(url, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` }
